@@ -199,7 +199,7 @@ if not sector_df.empty:
             yaxis="y2"
         ))
 
-        # Fully compatible layout configuration using built-in yaxis and yaxis2 definitions
+        # Layout configuration using width='stretch' instead of use_container_width
         fig.update_layout(
             height=380,
             margin=dict(l=10, r=10, t=20, b=10),
@@ -217,7 +217,7 @@ if not sector_df.empty:
             legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom")
         )
        
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with col_arrows:
         st.markdown("#### 3-Mo vs 12-Mo Trend")
@@ -282,7 +282,7 @@ with col_bar:
             marker_color="crimson"
         ))
         fig_bar.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10))
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_bar, width="stretch")
     else:
         st.info("No elevated risk threats detected in the last 7 days.")
 
