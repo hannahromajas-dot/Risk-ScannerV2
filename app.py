@@ -105,7 +105,7 @@ def load_combined_dataset(selected_region, selected_industry):
     feed = feedparser.parse(rss_url)
     live_records = []
    
-    for entry in feed.entries[:30]:  # Rate-sample live feed
+    for entry in feed.entries[:30]:
         pub_date = getattr(entry, "published", datetime.now().strftime("%Y-%m-%d"))
         try:
             parsed_date = datetime.strptime(pub_date[:16], "%a, %d %b %Y").strftime("%Y-%m-%d")
@@ -121,7 +121,7 @@ def load_combined_dataset(selected_region, selected_industry):
        
         live_records.append({
             "Date": parsed_date,
-            "Region": selected_region, # Applicable to user selected region
+            "Region": selected_region,
             "Industry": selected_industry,
             "Risk_Vector": pred_vector,
             "Keyword": keywords[0].capitalize(),
@@ -131,10 +131,10 @@ def load_combined_dataset(selected_region, selected_industry):
        
     live_df = pd.DataFrame(live_records)
    
-    # Merge datasets into unified full corpus
     full_df = pd.concat([hist_df, live_df], ignore_index=True)
     full_df["Date"] = pd.to_datetime(full_df["Date"])
     return full_df
+
 
 # ==============================================================================
 # SECTION 4: LEFT-HAND SIDE DROPDOWN CONTROLS
@@ -148,10 +148,8 @@ st.sidebar.header("⚙️ Filter Controls")
 selected_region = st.sidebar.selectbox("1) Select Region:", options=REGIONS_LIST)
 selected_industry = st.sidebar.selectbox("2) Select Primary Industry:", options=list(INDUSTRY_MAP.keys()))
 
-# Load unified dataset
 full_dataset = load_combined_dataset(selected_region, selected_industry)
 
-# Filter dataset for selected Region & Industry
 sector_df = full_dataset[
     (full_dataset["Industry"] == selected_industry) &
     (full_dataset["Region"].str.contains(selected_region.split()[0], case=False, na=False))
@@ -166,34 +164,84 @@ sector_df = full_dataset[
 # Data Sources: Filtered sector_df.
 # Tools Used: Plotly Graph Objects (go.Figure), Pandas GroupBy
 # ==============================================================================
-# Draw Dual Y-Axis Plotly Chart (Updated for Plotly compatibility)
+st.subheader("📈 Risk Trend Analysis - Past 12 Months")
+st.caption(f"Longitudinal Risk Exposure for **{selected_industry}** in **{selected_region}**")
+
+col_graph, col_arrows = st.columns([2, 1])
+
+if not sector_df.empty:
+    sector_df["YearMonth"] = sector_df["Date"].dt.to_period("M").dt.to_timestamp()
+    monthly_counts = sector_df.groupby(["YearMonth", "Risk_Vector"]).size().unstack(fill_value=0)
+   
+    for col in ["General (Neutral / Positive)", "Financial", "Operational", "Strategic", "Regulatory"]:
+        if col not in monthly_counts.columns:
+            monthly_counts[col] = 0
+           
+    monthly_counts["Total_Risk"] = monthly_counts[["Financial", "Operational", "Strategic", "Regulatory"]].sum(axis=1)
+    monthly_counts["Total_News"] = monthly_counts["Total_Risk"] + monthly_counts["General (Neutral / Positive)"]
+   
+    monthly_counts["General_Pct"] = (monthly_counts["General (Neutral / Positive)"] / monthly_counts["Total_News"].replace(0, 1)) * 100
+    monthly_counts["Risk_Pct"] = (monthly_counts["Total_Risk"] / monthly_counts["Total_News"].replace(0, 1)) * 100
+
     with col_graph:
         fig = go.Figure()
 
-        # Primary Y-Axis: General News (% Share) - BLUE
         fig.add_trace(go.Scatter(
             x=monthly_counts.index, y=monthly_counts["General_Pct"],
             name="Neutral / Positive News (%)", line=dict(color="blue", width=3),
             yaxis="y"
         ))
 
-        # Secondary Y-Axis: Risk Vectors (% Share) - RED
         fig.add_trace(go.Scatter(
             x=monthly_counts.index, y=monthly_counts["Risk_Pct"],
             name="Risk Vector News (%)", line=dict(color="red", width=3),
             yaxis="y2"
         ))
 
-        # Explicit layout configuration for dual axes without nested dictionary updating errors
-        fig.update_axes(title_text="Last 12 Months", xaxis=True)
         fig.update_layout(
             height=380,
             margin=dict(l=10, r=10, t=20, b=10),
+            xaxis=dict(title="Last 12 Months"),
             yaxis=dict(title="General News Share (%)", titlefont=dict(color="blue"), tickfont=dict(color="blue")),
             yaxis2=dict(title="Risk Vector Share (%)", titlefont=dict(color="red"), tickfont=dict(color="red"), overlaying="y", side="right"),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
         st.plotly_chart(fig, use_container_width=True)
+
+    with col_arrows:
+        st.markdown("#### 3-Mo vs 12-Mo Trend")
+       
+        def calculate_trend_arrow(series_3mo, series_12mo, label_name):
+            avg_3m = series_3mo.mean()
+            avg_12m = series_12mo.mean()
+           
+            if avg_12m == 0:
+                diff_pct = 0.0
+            else:
+                diff_pct = ((avg_3m - avg_12m) / avg_12m) * 100
+               
+            if diff_pct <= -10.0:
+                arrow = "🟢 ⬇️"
+                desc = f"Down {abs(diff_pct):.1f}% vs 12-mo avg"
+            elif diff_pct >= 10.0:
+                arrow = "🔴 ⬆️"
+                desc = f"Up {diff_pct:.1f}% vs 12-mo avg"
+            else:
+                arrow = "🔵 ➡️"
+                desc = f"Flat ({diff_pct:+.1f}% vs 12-mo avg)"
+               
+            st.markdown(f"**{label_name}:** {arrow} <br><small>{desc}</small>", unsafe_allow_html=True)
+
+        last_3m = monthly_counts.tail(3)
+       
+        calculate_trend_arrow(last_3m["Total_Risk"], monthly_counts["Total_Risk"], "Overall")
+        calculate_trend_arrow(last_3m["Financial"], monthly_counts["Financial"], "Financial")
+        calculate_trend_arrow(last_3m["Operational"], monthly_counts["Operational"], "Operational")
+        calculate_trend_arrow(last_3m["Strategic"], monthly_counts["Strategic"], "Strategic")
+        calculate_trend_arrow(last_3m["Regulatory"], monthly_counts["Regulatory"], "Regulatory")
+
+st.divider()
+
 
 # ==============================================================================
 # SECTION 6: RIGHT-HAND SIDE - RECENT THREATS (LAST 7 DAYS)
@@ -234,7 +282,6 @@ with col_table:
     for rv in ["Financial", "Operational", "Strategic", "Regulatory"]:
         sub_rv = recent_df[recent_df["Risk_Vector"] == rv].head(3)
         for _, row in sub_rv.iterrows():
-            # Format link to source or fallback to Google Search query if link is empty
             if row["Link"] and str(row["Link"]).startswith("http"):
                 target_url = row["Link"]
             else:
@@ -267,7 +314,6 @@ st.divider()
 st.subheader("💬 Executive Risk Assistant Chatbot")
 st.caption("Queries the **full global dataset** across all regions and industries in real time.")
 
-# 3 Standard Contextual Click Prompt Buttons
 btn_c1, btn_c2, btn_c3 = st.columns(3)
 selected_prompt = None
 
@@ -292,7 +338,6 @@ if user_query:
     with st.chat_message("assistant"):
         q_lower = user_query.lower()
        
-        # 1. Answer Prompt 1: Single biggest high-risk headline today
         if "single biggest high-risk headline" in q_lower or "today" in q_lower:
             today_str = datetime.now().strftime("%Y-%m-%d")
             today_risk = full_dataset[
@@ -306,7 +351,6 @@ if user_query:
             else:
                 st.success("No critical high-risk headlines flagged in today's feed snapshot.")
 
-        # 2. Answer Prompt 2: Risk vs Growth Ratio
         elif "compare to positive stable growth" in q_lower or "volume of risk alerts" in q_lower:
             risk_cnt = len(sector_df[sector_df["Risk_Vector"] != "General (Neutral / Positive)"])
             growth_cnt = len(sector_df[sector_df["Risk_Vector"] == "General (Neutral / Positive)"])
@@ -314,7 +358,6 @@ if user_query:
             st.write(f"• **Active Risk Vector Alerts 🔴:** {risk_cnt} headlines")
             st.write(f"• **Neutral / Growth Signals 🟢:** {growth_cnt} headlines")
 
-        # 3. Answer Prompt 3: Past Month Operational Risks for selected sector
         elif "operational risk" in q_lower and "past month" in q_lower:
             one_month_ago = pd.to_datetime(datetime.now() - timedelta(days=30))
             ops_df = sector_df[
@@ -328,7 +371,6 @@ if user_query:
             else:
                 st.info(f"No Operational Risk alerts recorded in the past 30 days for {selected_industry}.")
 
-        # 4. Fallback Natural-Language Pandas Search Engine
         else:
             search_words = [w for w in q_lower.split() if len(w) > 3 and w not in ["show", "tell", "what", "where", "about"]]
             if search_words:
