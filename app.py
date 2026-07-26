@@ -10,10 +10,6 @@ from sklearn.linear_model import LogisticRegression
 
 # ==============================================================================
 # SECTION 1: PAGE CONFIGURATION & LAYOUT
-# Functionality: Configures Streamlit page structure and header banners.
-# How it works: Expands viewport layout to wide mode for multi-column dashboards.
-# Data Sources: None (UI configuration).
-# Tools Used: Streamlit (st.set_page_config, st.title, st.markdown)
 # ==============================================================================
 st.set_page_config(page_title="Enterprise Risk Scanner", page_icon="🏛️", layout="wide")
 
@@ -24,11 +20,6 @@ st.divider()
 
 # ==============================================================================
 # SECTION 2: INDUSTRY & REGIONAL MAPPINGS & AI CLASSIFIER TRAINING
-# Functionality: Trains an in-memory Scikit-Learn text classification engine.
-# How it works: Vectorizes headlines using TF-IDF and classifies text into
-#               Financial, Operational, Strategic, Regulatory, or General.
-# Data Sources: Pre-labeled corporate ERM training corpus.
-# Tools Used: Scikit-Learn (TfidfVectorizer, LogisticRegression), Pandas
 # ==============================================================================
 REGIONS_LIST = ["Global", "Americas (including U.S.)", "Europe (EMEA)", "Asia (APAC)"]
 
@@ -40,30 +31,36 @@ INDUSTRY_MAP = {
     "Energy & Raw Materials": ["energy", "oil", "gas", "BASF", "commodity", "carbon", "power grid"]
 }
 
+REGION_TERM_MAP = {
+    "Global": "global OR international OR world",
+    "Americas (including U.S.)": "US OR United States OR America OR domestic",
+    "Europe (EMEA)": "Europe OR European OR Germany OR UK OR EU",
+    "Asia (APAC)": "Asia OR China OR Japan OR Taiwan OR Korea OR APAC"
+}
+
+# Coordinated Red Palette for Risk Vectors
+VECTOR_COLORS = {
+    "Financial": "#8B0000",    # Dark Crimson
+    "Operational": "#B22222",  # Firebrick
+    "Strategic": "#DC143C",    # Crimson
+    "Regulatory": "#FF6B6B"    # Coral-Red
+}
+
 @st.cache_resource
 def train_erm_classifier():
     training_corpus = [
-        # Financial
         ("Quarterly profit loss recorded due to debt liquidity crunch", "Financial"),
         ("Credit downgrade risk increases as revenue misses estimates", "Financial"),
         ("Rising interest rate expense squeezes corporate margin balance", "Financial"),
-       
-        # Operational
         ("Factory shutdown imminent as supplier microchip delivery halts", "Operational"),
         ("Transit port congestion causes shipping bottleneck delays", "Operational"),
         ("Labor strike stops manufacturing plant production line", "Operational"),
-       
-        # Strategic
         ("Rival release causes sudden loss of market share dominance", "Strategic"),
         ("Delayed EV transition compromises multi-year market position", "Strategic"),
         ("Failed merger strategy leaves corporate growth outlook uncertain", "Strategic"),
-       
-        # Regulatory
         ("EU emission fine increases cross-border export tariff burden", "Regulatory"),
         ("Antitrust inquiry launched over non-compliance trade practices", "Regulatory"),
         ("Bilateral export sanctions restrict international market access", "Regulatory"),
-       
-        # General
         ("Company beats earnings estimates with record quarterly output", "General (Neutral / Positive)"),
         ("New automated facility opens boosting operational efficiency", "General (Neutral / Positive)"),
         ("Strategic partnership established to accelerate clean technology", "General (Neutral / Positive)")
@@ -80,25 +77,18 @@ vectorizer, erm_model = train_erm_classifier()
 
 
 # ==============================================================================
-# SECTION 3: DATA INGESTION PIPELINE (HISTORICAL CSV + LIVE RSS FEED)
-# Functionality: Loads historical records and merges them with live RSS feeds.
-# How it works: 1. Ingests historical_news.csv.
-#               2. Fetches live RSS Google News matching sector parameters.
-#               3. Runs AI classifier on RSS rows to standardize schema.
-# Data Sources: historical_news.csv & Google News RSS endpoint.
-# Tools Used: Pandas, feedparser, urllib.parse, Scikit-Learn
+# SECTION 3: DATA INGESTION PIPELINE (REGION-AWARE RSS + HISTORICAL CSV)
 # ==============================================================================
 @st.cache_data(ttl=600)
 def load_combined_dataset(selected_region, selected_industry):
-    # 1. Load Historical Baseline CSV
     try:
         hist_df = pd.read_csv("historical_news.csv")
     except FileNotFoundError:
         hist_df = pd.DataFrame(columns=["Date", "Region", "Industry", "Risk_Vector", "Keyword", "Headline", "Link"])
 
-    # 2. Fetch Live Google News RSS Feed
     keywords = INDUSTRY_MAP[selected_industry]
-    query = f"{keywords[0]} OR {keywords[1]} business"
+    geo_filter = REGION_TERM_MAP.get(selected_region, "global")
+    query = f"({keywords[0]} OR {keywords[1]}) AND ({geo_filter}) business"
     encoded_query = urllib.parse.quote(query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
    
@@ -115,7 +105,6 @@ def load_combined_dataset(selected_region, selected_industry):
         headline = entry.title
         link = entry.link
        
-        # AI ML Prediction for Live RSS headline
         X_test = vectorizer.transform([headline])
         pred_vector = erm_model.predict(X_test)[0]
        
@@ -138,10 +127,6 @@ def load_combined_dataset(selected_region, selected_industry):
 
 # ==============================================================================
 # SECTION 4: LEFT-HAND SIDE DROPDOWN CONTROLS
-# Functionality: Captures Region and Industry user selections.
-# How it works: Sidebar widgets pass selected state variables to data pipeline.
-# Data Sources: User click state.
-# Tools Used: Streamlit (st.sidebar.selectbox)
 # ==============================================================================
 st.sidebar.header("⚙️ Filter Controls")
 
@@ -157,72 +142,49 @@ sector_df = full_dataset[
 
 
 # ==============================================================================
-# SECTION 5: RIGHT-HAND SIDE - RISK TREND ANALYSIS (PAST 12 MONTHS)
-# Functionality: Dual Y-Axis Line Chart (0-100% scale) & Formulaic Trends.
-# How it works: Calculates % Share of Neutral/Positive vs Risk news per month.
-#               Computes moving average thresholds (+/- 10%) for colored trend arrows.
-# Data Sources: Filtered sector_df.
-# Tools Used: Plotly Graph Objects (go.Figure), Pandas GroupBy
+# SECTION 5: RIGHT-HAND SIDE - RISK TREND ANALYSIS (STACKED BAR CHART)
 # ==============================================================================
 st.subheader("📈 Risk Trend Analysis - Past 12 Months")
-st.caption(f"Longitudinal Risk Exposure for **{selected_industry}** in **{selected_region}**")
+st.caption(f"Monthly Risk Vector Volume for **{selected_industry}** in **{selected_region}**")
 
 col_graph, col_arrows = st.columns([2, 1])
 
 if not sector_df.empty:
     sector_df["YearMonth"] = sector_df["Date"].dt.to_period("M").dt.to_timestamp()
-    monthly_counts = sector_df.groupby(["YearMonth", "Risk_Vector"]).size().unstack(fill_value=0)
    
-    for col in ["General (Neutral / Positive)", "Financial", "Operational", "Strategic", "Regulatory"]:
+    # Filter strictly for Risk Vectors (exclude General / Neutral)
+    risk_only_df = sector_df[sector_df["Risk_Vector"] != "General (Neutral / Positive)"]
+    monthly_counts = risk_only_df.groupby(["YearMonth", "Risk_Vector"]).size().unstack(fill_value=0)
+   
+    for col in ["Financial", "Operational", "Strategic", "Regulatory"]:
         if col not in monthly_counts.columns:
             monthly_counts[col] = 0
-           
-    monthly_counts["Total_Risk"] = monthly_counts[["Financial", "Operational", "Strategic", "Regulatory"]].sum(axis=1)
-    monthly_counts["Total_News"] = monthly_counts["Total_Risk"] + monthly_counts["General (Neutral / Positive)"]
-   
-    monthly_counts["General_Pct"] = (monthly_counts["General (Neutral / Positive)"] / monthly_counts["Total_News"].replace(0, 1)) * 100
-    monthly_counts["Risk_Pct"] = (monthly_counts["Total_Risk"] / monthly_counts["Total_News"].replace(0, 1)) * 100
 
     with col_graph:
         fig = go.Figure()
 
-        # Primary Y-Axis trace (Blue)
-        fig.add_trace(go.Scatter(
-            x=monthly_counts.index, y=monthly_counts["General_Pct"],
-            name="Neutral / Positive News (%)", line=dict(color="blue", width=3)
-        ))
+        # Add Stacked Bar traces for each Risk Vector using coordinated red shades
+        for rv in ["Financial", "Operational", "Strategic", "Regulatory"]:
+            fig.add_trace(go.Bar(
+                x=monthly_counts.index, y=monthly_counts[rv],
+                name=rv, marker_color=VECTOR_COLORS[rv]
+            ))
 
-        # Secondary Y-Axis trace (Red)
-        fig.add_trace(go.Scatter(
-            x=monthly_counts.index, y=monthly_counts["Risk_Pct"],
-            name="Risk Vector News (%)", line=dict(color="red", width=3),
-            yaxis="y2"
-        ))
-
-        # Layout configuration with 0% to 100% explicit Y-Axis ranges
         fig.update_layout(
+            barmode='stack',
             height=380,
             margin=dict(l=10, r=10, t=20, b=10),
             xaxis=dict(title="Last 12 Months"),
-            yaxis=dict(
-                title=dict(text="General News Share (%)", font=dict(color="blue")),
-                tickfont=dict(color="blue"),
-                range=[0, 100]
-            ),
-            yaxis2=dict(
-                title=dict(text="Risk Vector Share (%)", font=dict(color="red")),
-                tickfont=dict(color="red"),
-                overlaying="y",
-                side="right",
-                range=[0, 100]
-            ),
+            yaxis=dict(title="Headline Count"),
             legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom")
         )
-       
         st.plotly_chart(fig, width="stretch")
 
     with col_arrows:
         st.markdown("#### 3-Mo vs 12-Mo Trend")
+       
+        # Calculate monthly total risk for moving average comparisons
+        monthly_total_risk = monthly_counts.sum(axis=1)
        
         def calculate_trend_arrow(series_3mo, series_12mo, label_name):
             avg_3m = series_3mo.mean()
@@ -234,54 +196,53 @@ if not sector_df.empty:
                 diff_pct = ((avg_3m - avg_12m) / avg_12m) * 100
                
             if diff_pct <= -10.0:
-                # Downward trending and green
                 colored_text = f"<span style='color:green; font-weight:bold;'>⬇️ Down {abs(diff_pct):.1f}% vs 12-mo avg</span>"
             elif diff_pct >= 10.0:
-                # Upward trending and red
                 colored_text = f"<span style='color:red; font-weight:bold;'>⬆️ Up {diff_pct:.1f}% vs 12-mo avg</span>"
             else:
-                # Sideways trending and blue
                 colored_text = f"<span style='color:blue; font-weight:bold;'>➡️ Flat ({diff_pct:+.1f}% vs 12-mo avg)</span>"
                
             st.markdown(f"**{label_name}:**<br>{colored_text}", unsafe_allow_html=True)
 
-        last_3m = monthly_counts.tail(3)
+        last_3m_total = monthly_total_risk.tail(3)
+        calculate_trend_arrow(last_3m_total, monthly_total_risk, "Overall Risk")
        
-        calculate_trend_arrow(last_3m["Total_Risk"], monthly_counts["Total_Risk"], "Overall")
-        calculate_trend_arrow(last_3m["Financial"], monthly_counts["Financial"], "Financial")
-        calculate_trend_arrow(last_3m["Operational"], monthly_counts["Operational"], "Operational")
-        calculate_trend_arrow(last_3m["Strategic"], monthly_counts["Strategic"], "Strategic")
-        calculate_trend_arrow(last_3m["Regulatory"], monthly_counts["Regulatory"], "Regulatory")
+        for rv in ["Financial", "Operational", "Strategic", "Regulatory"]:
+            last_3m_rv = monthly_counts[rv].tail(3)
+            calculate_trend_arrow(last_3m_rv, monthly_counts[rv], rv)
 
 st.divider()
 
 
 # ==============================================================================
-# SECTION 6: RIGHT-HAND SIDE - RECENT THREATS (LAST 7 DAYS)
-# Functionality: Vertical Bar Chart & Separate Tables per Risk Vector.
-# How it works: Filters sector_df for past 7 days, renders individual tables
-#               per risk vector without the vector column, with search fallback links.
-# Data Sources: Filtered sector_df.
-# Tools Used: Streamlit, Plotly Bar, Pandas Markdown formatting
+# SECTION 6: RECENT THREATS (LAST 7 DAYS) & SEPARATE SORTED TABLES
 # ==============================================================================
 st.subheader("⚠️ Recent Threats - Last 7 Days")
 
 seven_days_ago = pd.to_datetime(datetime.now() - timedelta(days=7))
-recent_df = sector_df[sector_df["Date"] >= seven_days_ago].copy()
+recent_df = sector_df[
+    (sector_df["Date"] >= seven_days_ago) &
+    (sector_df["Risk_Vector"] != "General (Neutral / Positive)") &
+    (sector_df["Link"].str.startswith("http", na=False))
+].copy()
+
+# Sort most recent to oldest
+recent_df = recent_df.sort_values(by="Date", ascending=False)
 
 col_bar, col_tables = st.columns([1, 1.5])
 
 with col_bar:
     st.markdown("#### Threat Count by Vector")
-    risk_only_recent = recent_df[recent_df["Risk_Vector"] != "General (Neutral / Positive)"]
-   
-    if not risk_only_recent.empty:
-        bar_counts = risk_only_recent["Risk_Vector"].value_counts().reset_index()
+    if not recent_df.empty:
+        bar_counts = recent_df["Risk_Vector"].value_counts().reset_index()
         bar_counts.columns = ["Risk Vector", "Count"]
+       
+        # Apply exact coordinated red shades to bar chart bars
+        bar_colors = [VECTOR_COLORS.get(rv, "#B22222") for rv in bar_counts["Risk Vector"]]
        
         fig_bar = go.Figure(go.Bar(
             x=bar_counts["Risk Vector"], y=bar_counts["Count"],
-            marker_color="crimson"
+            marker_color=bar_colors
         ))
         fig_bar.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10))
         st.plotly_chart(fig_bar, width="stretch")
@@ -302,11 +263,7 @@ with col_tables:
            
             top_headlines = []
             for _, row in sub_rv.iterrows():
-                if row["Link"] and str(row["Link"]).startswith("http"):
-                    target_url = row["Link"]
-                else:
-                    target_url = f"https://www.google.com/search?q={urllib.parse.quote(row['Headline'])}"
-                   
+                target_url = row["Link"]
                 formatted_link = f"[{row['Headline']}]({target_url})"
                 top_headlines.append({
                     "Date": row["Date"].strftime("%Y-%m-%d"),
@@ -316,7 +273,7 @@ with col_tables:
                
             top_df = pd.DataFrame(top_headlines)
             st.write(top_df.to_markdown(index=False), unsafe_allow_html=True)
-            st.markdown("") # spacing between tables
+            st.markdown("")
            
     if not has_any_threats:
-        st.caption("No recent threat headlines available for display across risk vectors.")
+        st.caption("No direct article threat links available for display in the past 7 days.")
