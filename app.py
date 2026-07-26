@@ -183,7 +183,7 @@ if not sector_df.empty:
     monthly_counts["General_Pct"] = (monthly_counts["General (Neutral / Positive)"] / monthly_counts["Total_News"].replace(0, 1)) * 100
     monthly_counts["Risk_Pct"] = (monthly_counts["Total_Risk"] / monthly_counts["Total_News"].replace(0, 1)) * 100
 
-    with col_graph:
+with col_graph:
         fig = go.Figure()
 
         # Primary Y-Axis trace (Blue)
@@ -199,18 +199,18 @@ if not sector_df.empty:
             yaxis="y2"
         ))
 
-        # Safe separate layout configuration properties to prevent schema matching errors
+        # Clean layout configuration separated to prevent version parsing crashes
         fig.update_layout(
             height=380,
             margin=dict(l=10, r=10, t=20, b=10),
             xaxis=dict(title="Last 12 Months"),
             yaxis=dict(title="General News Share (%)", titlefont=dict(color="blue"), tickfont=dict(color="blue")),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom")
         )
        
         fig.update_yaxis(
             title="Risk Vector Share (%)", titlefont=dict(color="red"), tickfont=dict(color="red"),
-            anchor="x", overlaying="y", side="right", secondary_y=True
+            anchor="x", overlaying="y", side="right"
         )
        
         st.plotly_chart(fig, use_container_width=True)
