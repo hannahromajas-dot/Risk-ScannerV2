@@ -166,29 +166,7 @@ sector_df = full_dataset[
 # Data Sources: Filtered sector_df.
 # Tools Used: Plotly Graph Objects (go.Figure), Pandas GroupBy
 # ==============================================================================
-st.subheader("📈 Risk Trend Analysis - Past 12 Months")
-st.caption(f"Longitudinal Risk Exposure for **{selected_industry}** in **{selected_region}**")
-
-col_graph, col_arrows = st.columns([2, 1])
-
-if not sector_df.empty:
-    # Resample news monthly
-    sector_df["YearMonth"] = sector_df["Date"].dt.to_period("M").dt.to_timestamp()
-    monthly_counts = sector_df.groupby(["YearMonth", "Risk_Vector"]).size().unstack(fill_value=0)
-   
-    # Ensure all risk columns exist
-    for col in ["General (Neutral / Positive)", "Financial", "Operational", "Strategic", "Regulatory"]:
-        if col not in monthly_counts.columns:
-            monthly_counts[col] = 0
-           
-    monthly_counts["Total_Risk"] = monthly_counts[["Financial", "Operational", "Strategic", "Regulatory"]].sum(axis=1)
-    monthly_counts["Total_News"] = monthly_counts["Total_Risk"] + monthly_counts["General (Neutral / Positive)"]
-   
-    # Calculate Option 2: % Share Metrics to eliminate RSS vs Historical volume bias
-    monthly_counts["General_Pct"] = (monthly_counts["General (Neutral / Positive)"] / monthly_counts["Total_News"].replace(0, 1)) * 100
-    monthly_counts["Risk_Pct"] = (monthly_counts["Total_Risk"] / monthly_counts["Total_News"].replace(0, 1)) * 100
-
-    # Draw Dual Y-Axis Plotly Chart
+# Draw Dual Y-Axis Plotly Chart (Updated for Plotly compatibility)
     with col_graph:
         fig = go.Figure()
 
@@ -196,7 +174,7 @@ if not sector_df.empty:
         fig.add_trace(go.Scatter(
             x=monthly_counts.index, y=monthly_counts["General_Pct"],
             name="Neutral / Positive News (%)", line=dict(color="blue", width=3),
-            yaxis="y1"
+            yaxis="y"
         ))
 
         # Secondary Y-Axis: Risk Vectors (% Share) - RED
@@ -206,53 +184,16 @@ if not sector_df.empty:
             yaxis="y2"
         ))
 
+        # Explicit layout configuration for dual axes without nested dictionary updating errors
+        fig.update_axes(title_text="Last 12 Months", xaxis=True)
         fig.update_layout(
             height=380,
             margin=dict(l=10, r=10, t=20, b=10),
-            xaxis=dict(title="Last 12 Months"),
             yaxis=dict(title="General News Share (%)", titlefont=dict(color="blue"), tickfont=dict(color="blue")),
             yaxis2=dict(title="Risk Vector Share (%)", titlefont=dict(color="red"), tickfont=dict(color="red"), overlaying="y", side="right"),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
         st.plotly_chart(fig, use_container_width=True)
-
-    # Formulaic Moving Average Trend Arrows
-    with col_arrows:
-        st.markdown("#### 3-Mo vs 12-Mo Trend")
-       
-        # Helper function for formulaic trend descriptions
-        def calculate_trend_arrow(series_3mo, series_12mo, label_name):
-            avg_3m = series_3mo.mean()
-            avg_12m = series_12mo.mean()
-           
-            if avg_12m == 0:
-                diff_pct = 0.0
-            else:
-                diff_pct = ((avg_3m - avg_12m) / avg_12m) * 100
-               
-            if diff_pct <= -10.0:
-                arrow = "🟢 ⬇️" # Downward green (Risk decreasing)
-                desc = f"Down {abs(diff_pct):.1f}% vs 12-mo avg"
-            elif diff_pct >= 10.0:
-                arrow = "🔴 ⬆️" # Upward red (Risk increasing)
-                desc = f"Up {diff_pct:.1f}% vs 12-mo avg"
-            else:
-                arrow = "🔵 ➡️" # Sideways blue
-                desc = f"Flat ({diff_pct:+.1f}% vs 12-mo avg)"
-               
-            st.markdown(f"**{label_name}:** {arrow} <br><small>{desc}</small>", unsafe_allow_html=True)
-
-        last_3m = monthly_counts.tail(3)
-       
-        # Ordered Trend Output
-        calculate_trend_arrow(last_3m["Total_Risk"], monthly_counts["Total_Risk"], "Overall")
-        calculate_trend_arrow(last_3m["Financial"], monthly_counts["Financial"], "Financial")
-        calculate_trend_arrow(last_3m["Operational"], monthly_counts["Operational"], "Operational")
-        calculate_trend_arrow(last_3m["Strategic"], monthly_counts["Strategic"], "Strategic")
-        calculate_trend_arrow(last_3m["Regulatory"], monthly_counts["Regulatory"], "Regulatory")
-
-st.divider()
-
 
 # ==============================================================================
 # SECTION 6: RIGHT-HAND SIDE - RECENT THREATS (LAST 7 DAYS)
