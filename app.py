@@ -199,7 +199,7 @@ if not sector_df.empty:
             yaxis="y2"
         ))
 
-        # Fully compatible Plotly v5+ layout properties
+        # Layout configuration
         fig.update_layout(
             height=380,
             margin=dict(l=10, r=10, t=20, b=10),
@@ -211,10 +211,11 @@ if not sector_df.empty:
             legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom")
         )
        
-        fig.update_yaxis(
+        # Corrected method name: update_yaxes
+        fig.update_yaxes(
             title=dict(text="Risk Vector Share (%)", font=dict(color="red")),
             tickfont=dict(color="red"),
-            anchor="x", overlaying="y", side="right"
+            anchor="x", overlaying="y", side="right", secondary_y=True
         )
        
         st.plotly_chart(fig, use_container_width=True)
