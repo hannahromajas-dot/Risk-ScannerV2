@@ -167,33 +167,33 @@ sector_df = full_dataset[
 # Tools Used: Plotly Graph Objects (go.Figure), Pandas GroupBy
 # ==============================================================================
 # Draw Dual Y-Axis Plotly Chart (Updated for Plotly compatibility)
- with col_graph:
-        fig = go.Figure()
+with col_graph:
+    fig = go.Figure()
 
-        # Primary Y-Axis: General News (% Share) - BLUE
-        fig.add_trace(go.Scatter(
-            x=monthly_counts.index, y=monthly_counts["General_Pct"],
-            name="Neutral / Positive News (%)", line=dict(color="blue", width=3),
-            yaxis="y"
-        ))
+    # Primary Y-Axis: General News (% Share) - BLUE
+    fig.add_trace(go.Scatter(
+        x=monthly_counts.index, y=monthly_counts["General_Pct"],
+        name="Neutral / Positive News (%)", line=dict(color="blue", width=3),
+        yaxis="y"
+    ))
 
-        # Secondary Y-Axis: Risk Vectors (% Share) - RED
-        fig.add_trace(go.Scatter(
-            x=monthly_counts.index, y=monthly_counts["Risk_Pct"],
-            name="Risk Vector News (%)", line=dict(color="red", width=3),
-            yaxis="y2"
-        ))
+    # Secondary Y-Axis: Risk Vectors (% Share) - RED
+    fig.add_trace(go.Scatter(
+        x=monthly_counts.index, y=monthly_counts["Risk_Pct"],
+        name="Risk Vector News (%)", line=dict(color="red", width=3),
+        yaxis="y2"
+    ))
 
-        # Explicit layout configuration for dual axes without nested dictionary updating errors
-        fig.update_axes(title_text="Last 12 Months", xaxis=True)
-        fig.update_layout(
-            height=380,
-            margin=dict(l=10, r=10, t=20, b=10),
-            yaxis=dict(title="General News Share (%)", titlefont=dict(color="blue"), tickfont=dict(color="blue")),
-            yaxis2=dict(title="Risk Vector Share (%)", titlefont=dict(color="red"), tickfont=dict(color="red"), overlaying="y", side="right"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        st.plotly_chart(fig, use_container_width=True)
+    # Explicit layout configuration for dual axes without nested dictionary updating errors
+    fig.update_axes(title_text="Last 12 Months", xaxis=True)
+    fig.update_layout(
+        height=380,
+        margin=dict(l=10, r=10, t=20, b=10),
+        yaxis=dict(title="General News Share (%)", titlefont=dict(color="blue"), tickfont=dict(color="blue")),
+        yaxis2=dict(title="Risk Vector Share (%)", titlefont=dict(color="red"), tickfont=dict(color="red"), overlaying="y", side="right"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 # ==============================================================================
 # SECTION 6: RIGHT-HAND SIDE - RECENT THREATS (LAST 7 DAYS)
