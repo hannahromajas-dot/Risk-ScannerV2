@@ -167,7 +167,7 @@ sector_df = full_dataset[
 # Tools Used: Plotly Graph Objects (go.Figure), Pandas GroupBy
 # ==============================================================================
 # Draw Dual Y-Axis Plotly Chart (Updated for Plotly compatibility)
-    with col_graph:
+ with col_graph:
         fig = go.Figure()
 
         # Primary Y-Axis: General News (% Share) - BLUE
