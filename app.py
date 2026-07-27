@@ -127,11 +127,9 @@ vectorizer, erm_model = train_erm_classifier()
 def clean_headline(raw_title):
     if not raw_title:
         return ""
-    # Remove leading bracket tags like [Opinion], [Analysis] or unclosed brackets
     cleaned = re.sub(r'^\[.*?\]\s*', '', raw_title).strip()
     cleaned = cleaned.lstrip('[').strip()
     
-    # Strip trailing publisher/source suffixes separated by " - " or " | "
     for separator in [' - ', ' | ']:
         if separator in cleaned:
             parts = cleaned.rsplit(separator, 1)
@@ -280,13 +278,13 @@ st.divider()
 
 
 # ==============================================================================
-# SECTION 6: RECENT THREATS (LAST 7 DAYS) & SEPARATE SORTED TABLES
+# SECTION 6: RECENT THREATS (LAST 14 DAYS) & SEPARATE SORTED TABLES
 # ==============================================================================
-st.subheader("⚠️ Recent Threats - Last 7 Days")
+st.subheader("⚠️ Recent Threats - Last 14 Days")
 
-seven_days_ago = pd.to_datetime(datetime.now() - timedelta(days=7))
+fourteen_days_ago = pd.to_datetime(datetime.now() - timedelta(days=14))
 recent_df = sector_df[
-    (sector_df["Date"] >= seven_days_ago) & 
+    (sector_df["Date"] >= fourteen_days_ago) & 
     (sector_df["Risk_Vector"] != "General (Neutral / Positive)") &
     (sector_df["Link"].str.startswith("http", na=False))
 ].copy()
