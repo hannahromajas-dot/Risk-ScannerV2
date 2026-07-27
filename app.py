@@ -122,8 +122,24 @@ vectorizer, erm_model = train_erm_classifier()
 
 
 # ==============================================================================
-# SECTION 3: DATA INGESTION PIPELINE (ROBUST RSS QUERY + CLEANING)
+# SECTION 3: DATA INGESTION PIPELINE (ROBUST RSS QUERY + ADVANCED CLEANING)
 # ==============================================================================
+def clean_headline(raw_title):
+    if not raw_title:
+        return ""
+    # Remove leading bracket tags like [Opinion], [Analysis] or unclosed brackets
+    cleaned = re.sub(r'^\[.*?\]\s*', '', raw_title).strip()
+    cleaned = cleaned.lstrip('[').strip()
+    
+    # Strip trailing publisher/source suffixes separated by " - " or " | "
+    for separator in [' - ', ' | ']:
+        if separator in cleaned:
+            parts = cleaned.rsplit(separator, 1)
+            if len(parts[0]) > 15:
+                cleaned = parts[0]
+                
+    return cleaned.strip()
+
 @st.cache_data(ttl=600)
 def load_combined_dataset(selected_region, selected_industry):
     try:
@@ -147,10 +163,10 @@ def load_combined_dataset(selected_region, selected_industry):
         else:
             parsed_date = datetime.now().strftime("%Y-%m-%d")
             
-        raw_headline = entry.title
-        link = entry.link
+        raw_headline = getattr(entry, "title", "")
+        link = getattr(entry, "link", "")
         
-        cleaned_headline = re.sub(r'^\[.*?\]\s*', '', raw_headline).strip()
+        cleaned_headline = clean_headline(raw_headline)
         if len(cleaned_headline) < 15:
             continue
             
