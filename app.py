@@ -54,11 +54,12 @@ INDUSTRY_MAP = {
     "Energy & Raw Materials": ["energy", "oil", "gas", "BASF", "commodity", "carbon", "power grid"]
 }
 
+# Simplified, robust geographic search terms for Google News RSS compatibility
 REGION_TERM_MAP = {
-    "Global": "global OR international OR world",
-    "Americas (including U.S.)": "US OR United States OR America OR domestic",
-    "Europe (EMEA)": "Europe OR European OR Germany OR UK OR EU",
-    "Asia (APAC)": "Asia OR China OR Japan OR Taiwan OR Korea OR APAC"
+    "Global": "global market",
+    "Americas (including U.S.)": "US business",
+    "Europe (EMEA)": "Europe business",
+    "Asia (APAC)": "Asia business"
 }
 
 # Strict Risk Vector Order: Regulatory, Strategic, Operational, Financial
@@ -113,7 +114,7 @@ vectorizer, erm_model = train_erm_classifier()
 
 
 # ==============================================================================
-# SECTION 3: DATA INGESTION PIPELINE (REGION-AWARE RSS + CLEANING)
+# SECTION 3: DATA INGESTION PIPELINE (ROBUST RSS QUERY + PARSING)
 # ==============================================================================
 @st.cache_data(ttl=600)
 def load_combined_dataset(selected_region, selected_industry):
@@ -123,8 +124,10 @@ def load_combined_dataset(selected_region, selected_industry):
         hist_df = pd.DataFrame(columns=["Date", "Region", "Industry", "Risk_Vector", "Keyword", "Headline", "Link"])
 
     keywords = INDUSTRY_MAP[selected_industry]
-    geo_filter = REGION_TERM_MAP.get(selected_region, "global")
-    query = f"({keywords[0]} OR {keywords[1]}) AND ({geo_filter}) business"
+    geo_term = REGION_TERM_MAP.get(selected_region, "business")
+    
+    # Clean, robust query string preventing Google News RSS query parsing failures
+    query = f"{keywords[0]} {geo_term}"
     encoded_query = urllib.parse.quote(query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
     
@@ -132,10 +135,10 @@ def load_combined_dataset(selected_region, selected_industry):
     live_records = []
     
     for entry in feed.entries[:30]:
-        pub_date = getattr(entry, "published", datetime.now().strftime("%Y-%m-%d"))
-        try:
-            parsed_date = datetime.strptime(pub_date[:16], "%a, %d %b %Y").strftime("%Y-%m-%d")
-        except:
+        # Use native feedparser time tuple for reliable date extraction
+        if hasattr(entry, "published_parsed") and entry.published_parsed:
+            parsed_date = datetime(*entry.published_parsed[:6]).strftime("%Y-%m-%d")
+        else:
             parsed_date = datetime.now().strftime("%Y-%m-%d")
             
         raw_headline = entry.title
@@ -207,7 +210,7 @@ if not sector_df.empty:
     with col_graph:
         fig = go.Figure()
 
-        # Add Stacked Bar traces in strict order: Regulatory, Strategic, Operational, Financial
+        # Stacked bar traces in strict order: Regulatory, Strategic, Operational, Financial
         for rv in RISK_VECTORS_ORDER:
             fig.add_trace(go.Bar(
                 x=monthly_counts.index, y=monthly_counts[rv],
@@ -276,7 +279,6 @@ col_bar, col_tables = st.columns([1, 1.5])
 with col_bar:
     st.markdown("#### Threat Count by Vector")
     
-    # Reindex to guarantee all 4 risk vectors appear on X-axis even with 0 counts
     if not recent_df.empty:
         bar_counts = recent_df["Risk_Vector"].value_counts()
     else:
