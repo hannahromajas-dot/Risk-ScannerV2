@@ -148,7 +148,6 @@ def load_combined_dataset(selected_region, selected_industry):
     keywords = INDUSTRY_MAP[selected_industry]
     geo_term = REGION_TERM_MAP.get(selected_region, "business")
     
-    # Risk-targeted query terms to ensure robust threat surfacing
     risk_triggers = "risk OR breach OR lawsuit OR fine OR outage OR shortage OR crisis OR failure OR drop OR decline"
     query = f"({keywords[0]} OR {keywords[1]}) AND ({risk_triggers}) AND ({geo_term})"
     
@@ -221,7 +220,11 @@ col_graph, col_arrows = st.columns([2, 1])
 if not sector_df.empty:
     sector_df["YearMonth"] = sector_df["Date"].dt.to_period("M").dt.to_timestamp()
     
-    risk_only_df = sector_df[sector_df["Risk_Vector"] != "General (Neutral / Positive)"]
+    risk_only_df = sector_df[
+        (sector_df["Risk_Vector"] != "General (Neutral / Positive)") &
+        (sector_df["Link"].str.startswith("http", na=False))
+    ].copy()
+    
     monthly_counts = risk_only_df.groupby(["YearMonth", "Risk_Vector"]).size().unstack(fill_value=0)
     
     for rv in RISK_VECTORS_ORDER:
@@ -281,20 +284,16 @@ st.divider()
 
 
 # ==============================================================================
-# SECTION 6: RECENT THREATS (LATEST MONTH - MATCHING STACKED BAR CHART)
+# SECTION 6: RECENT THREATS (FULLY SYNCHRONIZED TO LATEST MONTH)
 # ==============================================================================
 st.subheader("⚠️ Recent Threats - Latest Month")
 
-if not sector_df.empty:
-    latest_month = sector_df["YearMonth"].max()
-    recent_df = sector_df[
-        (sector_df["YearMonth"] == latest_month) & 
-        (sector_df["Risk_Vector"] != "General (Neutral / Positive)") &
-        (sector_df["Link"].str.startswith("http", na=False))
-    ].copy()
+if not risk_only_df.empty:
+    latest_month = risk_only_df["YearMonth"].max()
+    recent_df = risk_only_df[risk_only_df["YearMonth"] == latest_month].copy()
     
     month_name = latest_month.strftime("%B %Y")
-    st.caption(f"Threats detected in **{month_name}** (matching the final bar in the Trend Analysis)")
+    st.caption(f"Threats detected in **{month_name}** (100% synchronized with the final bar in the Trend Analysis)")
 else:
     recent_df = pd.DataFrame()
     st.caption("No threat data available for the latest month.")
