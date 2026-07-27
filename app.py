@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import feedparser
 import urllib.parse
+import re
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -12,6 +13,28 @@ from sklearn.linear_model import LogisticRegression
 # SECTION 1: PAGE CONFIGURATION & LAYOUT
 # ==============================================================================
 st.set_page_config(page_title="Enterprise Risk Scanner", page_icon="🏛️", layout="wide")
+
+# Sidebar Dark Mode Toggle
+dark_mode = st.sidebar.toggle("🌙 Dark Mode", value=False)
+
+if dark_mode:
+    st.markdown("""
+        <style>
+        .stApp {
+            background-color: #0e1117;
+            color: #ffffff;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+        <style>
+        .stApp {
+            background-color: #ffffff;
+            color: #000000;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
 st.title("🏛️ Enterprise Market Risk Management Scanner")
 st.markdown("**Real-Time & 12-Month Longitudinal Media Threat Intelligence**")
@@ -38,34 +61,47 @@ REGION_TERM_MAP = {
     "Asia (APAC)": "Asia OR China OR Japan OR Taiwan OR Korea OR APAC"
 }
 
-# Coordinated Red Palette for Risk Vectors
+# Strict Risk Vector Order: Regulatory, Strategic, Operational, Financial
+RISK_VECTORS_ORDER = ["Regulatory", "Strategic", "Operational", "Financial"]
+
 VECTOR_COLORS = {
-    "Financial": "#8B0000",    # Dark Crimson
-    "Operational": "#B22222",  # Firebrick
-    "Strategic": "#DC143C",    # Crimson
-    "Regulatory": "#FF6B6B"    # Coral-Red
+    "Regulatory": "#FF6B6B",    # Coral-Red
+    "Strategic": "#DC143C",     # Crimson
+    "Operational": "#B22222",   # Firebrick
+    "Financial": "#8B0000"      # Dark Crimson
 }
 
 @st.cache_resource
 def train_erm_classifier():
     training_corpus = [
+        # Financial
         ("Quarterly profit loss recorded due to debt liquidity crunch", "Financial"),
         ("Credit downgrade risk increases as revenue misses estimates", "Financial"),
         ("Rising interest rate expense squeezes corporate margin balance", "Financial"),
+        
+        # Operational
         ("Factory shutdown imminent as supplier microchip delivery halts", "Operational"),
         ("Transit port congestion causes shipping bottleneck delays", "Operational"),
         ("Labor strike stops manufacturing plant production line", "Operational"),
+        
+        # Strategic
         ("Rival release causes sudden loss of market share dominance", "Strategic"),
         ("Delayed EV transition compromises multi-year market position", "Strategic"),
         ("Failed merger strategy leaves corporate growth outlook uncertain", "Strategic"),
+        
+        # Regulatory
         ("EU emission fine increases cross-border export tariff burden", "Regulatory"),
         ("Antitrust inquiry launched over non-compliance trade practices", "Regulatory"),
         ("Bilateral export sanctions restrict international market access", "Regulatory"),
+        
+        # General (Neutral / Positive) & Consumer Banking
         ("Company beats earnings estimates with record quarterly output", "General (Neutral / Positive)"),
         ("New automated facility opens boosting operational efficiency", "General (Neutral / Positive)"),
-        ("Strategic partnership established to accelerate clean technology", "General (Neutral / Positive)")
+        ("Strategic partnership established to accelerate clean technology", "General (Neutral / Positive)"),
+        ("Checking account bonuses and promotional cash rewards attract depositors", "General (Neutral / Positive)"),
+        ("Retail banking promotional rates and high yield incentives announced", "General (Neutral / Positive)")
     ]
-   
+    
     train_df = pd.DataFrame(training_corpus, columns=["Headline", "Label"])
     vectorizer = TfidfVectorizer(stop_words="english")
     X_train = vectorizer.fit_transform(train_df["Headline"])
@@ -77,7 +113,7 @@ vectorizer, erm_model = train_erm_classifier()
 
 
 # ==============================================================================
-# SECTION 3: DATA INGESTION PIPELINE (REGION-AWARE RSS + HISTORICAL CSV)
+# SECTION 3: DATA INGESTION PIPELINE (REGION-AWARE RSS + CLEANING)
 # ==============================================================================
 @st.cache_data(ttl=600)
 def load_combined_dataset(selected_region, selected_industry):
@@ -91,35 +127,40 @@ def load_combined_dataset(selected_region, selected_industry):
     query = f"({keywords[0]} OR {keywords[1]}) AND ({geo_filter}) business"
     encoded_query = urllib.parse.quote(query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
-   
+    
     feed = feedparser.parse(rss_url)
     live_records = []
-   
+    
     for entry in feed.entries[:30]:
         pub_date = getattr(entry, "published", datetime.now().strftime("%Y-%m-%d"))
         try:
             parsed_date = datetime.strptime(pub_date[:16], "%a, %d %b %Y").strftime("%Y-%m-%d")
         except:
             parsed_date = datetime.now().strftime("%Y-%m-%d")
-           
-        headline = entry.title
+            
+        raw_headline = entry.title
         link = entry.link
-       
-        X_test = vectorizer.transform([headline])
+        
+        # Headline cleaning: remove bracket prefixes and validate length
+        cleaned_headline = re.sub(r'^\[.*?\]\s*', '', raw_headline).strip()
+        if len(cleaned_headline) < 15:
+            continue
+            
+        X_test = vectorizer.transform([cleaned_headline])
         pred_vector = erm_model.predict(X_test)[0]
-       
+        
         live_records.append({
             "Date": parsed_date,
             "Region": selected_region,
             "Industry": selected_industry,
             "Risk_Vector": pred_vector,
             "Keyword": keywords[0].capitalize(),
-            "Headline": headline,
+            "Headline": cleaned_headline,
             "Link": link
         })
-       
+        
     live_df = pd.DataFrame(live_records)
-   
+    
     full_df = pd.concat([hist_df, live_df], ignore_index=True)
     full_df["Date"] = pd.to_datetime(full_df["Date"])
     return full_df
@@ -133,10 +174,14 @@ st.sidebar.header("⚙️ Filter Controls")
 selected_region = st.sidebar.selectbox("1) Select Region:", options=REGIONS_LIST)
 selected_industry = st.sidebar.selectbox("2) Select Primary Industry:", options=list(INDUSTRY_MAP.keys()))
 
+# Dynamic sub-heading showing current selection
+st.markdown(f"### 🌐 Active Scope: **{selected_industry}** | 📍 **{selected_region}**")
+st.markdown("---")
+
 full_dataset = load_combined_dataset(selected_region, selected_industry)
 
 sector_df = full_dataset[
-    (full_dataset["Industry"] == selected_industry) &
+    (full_dataset["Industry"] == selected_industry) & 
     (full_dataset["Region"].str.contains(selected_region.split()[0], case=False, na=False))
 ].copy()
 
@@ -151,20 +196,19 @@ col_graph, col_arrows = st.columns([2, 1])
 
 if not sector_df.empty:
     sector_df["YearMonth"] = sector_df["Date"].dt.to_period("M").dt.to_timestamp()
-   
-    # Filter strictly for Risk Vectors (exclude General / Neutral)
+    
     risk_only_df = sector_df[sector_df["Risk_Vector"] != "General (Neutral / Positive)"]
     monthly_counts = risk_only_df.groupby(["YearMonth", "Risk_Vector"]).size().unstack(fill_value=0)
-   
-    for col in ["Financial", "Operational", "Strategic", "Regulatory"]:
-        if col not in monthly_counts.columns:
-            monthly_counts[col] = 0
+    
+    for rv in RISK_VECTORS_ORDER:
+        if rv not in monthly_counts.columns:
+            monthly_counts[rv] = 0
 
     with col_graph:
         fig = go.Figure()
 
-        # Add Stacked Bar traces for each Risk Vector using coordinated red shades
-        for rv in ["Financial", "Operational", "Strategic", "Regulatory"]:
+        # Add Stacked Bar traces in strict order: Regulatory, Strategic, Operational, Financial
+        for rv in RISK_VECTORS_ORDER:
             fig.add_trace(go.Bar(
                 x=monthly_counts.index, y=monthly_counts[rv],
                 name=rv, marker_color=VECTOR_COLORS[rv]
@@ -182,32 +226,31 @@ if not sector_df.empty:
 
     with col_arrows:
         st.markdown("#### 3-Mo vs 12-Mo Trend")
-       
-        # Calculate monthly total risk for moving average comparisons
+        
         monthly_total_risk = monthly_counts.sum(axis=1)
-       
+        
         def calculate_trend_arrow(series_3mo, series_12mo, label_name):
             avg_3m = series_3mo.mean()
             avg_12m = series_12mo.mean()
-           
+            
             if avg_12m == 0:
                 diff_pct = 0.0
             else:
                 diff_pct = ((avg_3m - avg_12m) / avg_12m) * 100
-               
+                
             if diff_pct <= -10.0:
                 colored_text = f"<span style='color:green; font-weight:bold;'>⬇️ Down {abs(diff_pct):.1f}% vs 12-mo avg</span>"
             elif diff_pct >= 10.0:
                 colored_text = f"<span style='color:red; font-weight:bold;'>⬆️ Up {diff_pct:.1f}% vs 12-mo avg</span>"
             else:
                 colored_text = f"<span style='color:blue; font-weight:bold;'>➡️ Flat ({diff_pct:+.1f}% vs 12-mo avg)</span>"
-               
+                
             st.markdown(f"**{label_name}:**<br>{colored_text}", unsafe_allow_html=True)
 
         last_3m_total = monthly_total_risk.tail(3)
         calculate_trend_arrow(last_3m_total, monthly_total_risk, "Overall Risk")
-       
-        for rv in ["Financial", "Operational", "Strategic", "Regulatory"]:
+        
+        for rv in RISK_VECTORS_ORDER:
             last_3m_rv = monthly_counts[rv].tail(3)
             calculate_trend_arrow(last_3m_rv, monthly_counts[rv], rv)
 
@@ -221,46 +264,47 @@ st.subheader("⚠️ Recent Threats - Last 7 Days")
 
 seven_days_ago = pd.to_datetime(datetime.now() - timedelta(days=7))
 recent_df = sector_df[
-    (sector_df["Date"] >= seven_days_ago) &
+    (sector_df["Date"] >= seven_days_ago) & 
     (sector_df["Risk_Vector"] != "General (Neutral / Positive)") &
     (sector_df["Link"].str.startswith("http", na=False))
 ].copy()
 
-# Sort most recent to oldest
 recent_df = recent_df.sort_values(by="Date", ascending=False)
 
 col_bar, col_tables = st.columns([1, 1.5])
 
 with col_bar:
     st.markdown("#### Threat Count by Vector")
+    
+    # Reindex to guarantee all 4 risk vectors appear on X-axis even with 0 counts
     if not recent_df.empty:
-        bar_counts = recent_df["Risk_Vector"].value_counts().reset_index()
-        bar_counts.columns = ["Risk Vector", "Count"]
-       
-        # Apply exact coordinated red shades to bar chart bars
-        bar_colors = [VECTOR_COLORS.get(rv, "#B22222") for rv in bar_counts["Risk Vector"]]
-       
-        fig_bar = go.Figure(go.Bar(
-            x=bar_counts["Risk Vector"], y=bar_counts["Count"],
-            marker_color=bar_colors
-        ))
-        fig_bar.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10))
-        st.plotly_chart(fig_bar, width="stretch")
+        bar_counts = recent_df["Risk_Vector"].value_counts()
     else:
-        st.info("No elevated risk threats detected in the last 7 days.")
+        bar_counts = pd.Series(0, index=RISK_VECTORS_ORDER)
+        
+    bar_counts = bar_counts.reindex(RISK_VECTORS_ORDER, fill_value=0).reset_index()
+    bar_counts.columns = ["Risk Vector", "Count"]
+    
+    bar_colors = [VECTOR_COLORS[rv] for rv in bar_counts["Risk Vector"]]
+    
+    fig_bar = go.Figure(go.Bar(
+        x=bar_counts["Risk Vector"], y=bar_counts["Count"],
+        marker_color=bar_colors
+    ))
+    fig_bar.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10))
+    st.plotly_chart(fig_bar, width="stretch")
 
 with col_tables:
     st.markdown("#### Top Headlines by Risk Vector")
-   
-    risk_vectors_list = ["Financial", "Operational", "Strategic", "Regulatory"]
+    
     has_any_threats = False
-   
-    for rv in risk_vectors_list:
+    
+    for rv in RISK_VECTORS_ORDER:
         sub_rv = recent_df[recent_df["Risk_Vector"] == rv].head(3)
         if not sub_rv.empty:
             has_any_threats = True
             st.markdown(f"**{rv} Risk**")
-           
+            
             top_headlines = []
             for _, row in sub_rv.iterrows():
                 target_url = row["Link"]
@@ -270,10 +314,10 @@ with col_tables:
                     "Keyword": row["Keyword"],
                     "Headline": formatted_link
                 })
-               
+                
             top_df = pd.DataFrame(top_headlines)
             st.write(top_df.to_markdown(index=False), unsafe_allow_html=True)
-            st.markdown("")
-           
+            st.markdown("") 
+            
     if not has_any_threats:
-        st.caption("No direct article threat links available for display in the past 7 days.")
+        st.caption("No direct article threat links available for display across risk vectors.")
