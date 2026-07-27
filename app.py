@@ -48,13 +48,12 @@ REGIONS_LIST = ["Global", "Americas (including U.S.)", "Europe (EMEA)", "Asia (A
 
 INDUSTRY_MAP = {
     "Industrials / Manufacturing": ["industrial", "factory", "manufacturing", "BMW", "Siemens", "automotive", "assembly"],
-    "Technology": ["technology", "software", "semiconductor", "microchip", "Nvidia", "Apple", "AI", "cloud"],
+    "Technology": ["technology", "software", "semiconductor", "microchip", "Nvidia", "Apple", "AI", "cloud", "cybersecurity"],
     "Financials": ["banking", "credit", "financial", "JPMorgan", "interest rate", "liquidity", "wall street"],
     "Consumer & Retail": ["retail", "consumer", "Walmart", "spending", "e-commerce", "Nike", "store"],
     "Energy & Raw Materials": ["energy", "oil", "gas", "BASF", "commodity", "carbon", "power grid"]
 }
 
-# Simplified, robust geographic search terms for Google News RSS compatibility
 REGION_TERM_MAP = {
     "Global": "global market",
     "Americas (including U.S.)": "US business",
@@ -80,27 +79,36 @@ def train_erm_classifier():
         ("Credit downgrade risk increases as revenue misses estimates", "Financial"),
         ("Rising interest rate expense squeezes corporate margin balance", "Financial"),
         
-        # Operational
+        # Operational (General + Tech-specific)
         ("Factory shutdown imminent as supplier microchip delivery halts", "Operational"),
         ("Transit port congestion causes shipping bottleneck delays", "Operational"),
         ("Labor strike stops manufacturing plant production line", "Operational"),
+        ("Major cloud service outage causes widespread enterprise server downtime", "Operational"),
+        ("Critical cybersecurity data breach exposes millions of user credentials", "Operational"),
+        ("Ransomware cyber attack paralyzes software infrastructure systems", "Operational"),
         
-        # Strategic
+        # Strategic (General + Tech-specific)
         ("Rival release causes sudden loss of market share dominance", "Strategic"),
         ("Delayed EV transition compromises multi-year market position", "Strategic"),
         ("Failed merger strategy leaves corporate growth outlook uncertain", "Strategic"),
+        ("Missed generative AI shift leads to rapid customer attrition", "Strategic"),
+        ("Semiconductor supply shortage stalls hardware product roadmap", "Strategic"),
         
-        # Regulatory
+        # Regulatory (General + Tech-specific)
         ("EU emission fine increases cross-border export tariff burden", "Regulatory"),
         ("Antitrust inquiry launched over non-compliance trade practices", "Regulatory"),
         ("Bilateral export sanctions restrict international market access", "Regulatory"),
+        ("Big tech antitrust investigation launched over anticompetitive app store rules", "Regulatory"),
+        ("Severe data privacy compliance fine issued for GDPR violations", "Regulatory"),
         
         # General (Neutral / Positive) & Consumer Banking
         ("Company beats earnings estimates with record quarterly output", "General (Neutral / Positive)"),
         ("New automated facility opens boosting operational efficiency", "General (Neutral / Positive)"),
         ("Strategic partnership established to accelerate clean technology", "General (Neutral / Positive)"),
         ("Checking account bonuses and promotional cash rewards attract depositors", "General (Neutral / Positive)"),
-        ("Retail banking promotional rates and high yield incentives announced", "General (Neutral / Positive)")
+        ("Retail banking promotional rates and high yield incentives announced", "General (Neutral / Positive)"),
+        ("Apple unveils breakthrough developer software tools at annual conference", "General (Neutral / Positive)"),
+        ("Nvidia reports record quarterly revenue driven by high AI chip demand", "General (Neutral / Positive)")
     ]
     
     train_df = pd.DataFrame(training_corpus, columns=["Headline", "Label"])
@@ -114,7 +122,7 @@ vectorizer, erm_model = train_erm_classifier()
 
 
 # ==============================================================================
-# SECTION 3: DATA INGESTION PIPELINE (ROBUST RSS QUERY + PARSING)
+# SECTION 3: DATA INGESTION PIPELINE (ROBUST RSS QUERY + CLEANING)
 # ==============================================================================
 @st.cache_data(ttl=600)
 def load_combined_dataset(selected_region, selected_industry):
@@ -126,7 +134,6 @@ def load_combined_dataset(selected_region, selected_industry):
     keywords = INDUSTRY_MAP[selected_industry]
     geo_term = REGION_TERM_MAP.get(selected_region, "business")
     
-    # Clean, robust query string preventing Google News RSS query parsing failures
     query = f"{keywords[0]} {geo_term}"
     encoded_query = urllib.parse.quote(query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
@@ -135,7 +142,6 @@ def load_combined_dataset(selected_region, selected_industry):
     live_records = []
     
     for entry in feed.entries[:30]:
-        # Use native feedparser time tuple for reliable date extraction
         if hasattr(entry, "published_parsed") and entry.published_parsed:
             parsed_date = datetime(*entry.published_parsed[:6]).strftime("%Y-%m-%d")
         else:
@@ -144,7 +150,6 @@ def load_combined_dataset(selected_region, selected_industry):
         raw_headline = entry.title
         link = entry.link
         
-        # Headline cleaning: remove bracket prefixes and validate length
         cleaned_headline = re.sub(r'^\[.*?\]\s*', '', raw_headline).strip()
         if len(cleaned_headline) < 15:
             continue
@@ -177,7 +182,6 @@ st.sidebar.header("⚙️ Filter Controls")
 selected_region = st.sidebar.selectbox("1) Select Region:", options=REGIONS_LIST)
 selected_industry = st.sidebar.selectbox("2) Select Primary Industry:", options=list(INDUSTRY_MAP.keys()))
 
-# Dynamic sub-heading showing current selection
 st.markdown(f"### 🌐 Active Scope: **{selected_industry}** | 📍 **{selected_region}**")
 st.markdown("---")
 
@@ -210,7 +214,6 @@ if not sector_df.empty:
     with col_graph:
         fig = go.Figure()
 
-        # Stacked bar traces in strict order: Regulatory, Strategic, Operational, Financial
         for rv in RISK_VECTORS_ORDER:
             fig.add_trace(go.Bar(
                 x=monthly_counts.index, y=monthly_counts[rv],
