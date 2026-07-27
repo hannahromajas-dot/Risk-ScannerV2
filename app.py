@@ -281,16 +281,23 @@ st.divider()
 
 
 # ==============================================================================
-# SECTION 6: RECENT THREATS (LAST 14 DAYS) & SEPARATE SORTED TABLES
+# SECTION 6: RECENT THREATS (LATEST MONTH - MATCHING STACKED BAR CHART)
 # ==============================================================================
-st.subheader("⚠️ Recent Threats - Last 14 Days")
+st.subheader("⚠️ Recent Threats - Latest Month")
 
-fourteen_days_ago = pd.to_datetime(datetime.now() - timedelta(days=14))
-recent_df = sector_df[
-    (sector_df["Date"] >= fourteen_days_ago) & 
-    (sector_df["Risk_Vector"] != "General (Neutral / Positive)") &
-    (sector_df["Link"].str.startswith("http", na=False))
-].copy()
+if not sector_df.empty:
+    latest_month = sector_df["YearMonth"].max()
+    recent_df = sector_df[
+        (sector_df["YearMonth"] == latest_month) & 
+        (sector_df["Risk_Vector"] != "General (Neutral / Positive)") &
+        (sector_df["Link"].str.startswith("http", na=False))
+    ].copy()
+    
+    month_name = latest_month.strftime("%B %Y")
+    st.caption(f"Threats detected in **{month_name}** (matching the final bar in the Trend Analysis)")
+else:
+    recent_df = pd.DataFrame()
+    st.caption("No threat data available for the latest month.")
 
 recent_df = recent_df.sort_values(by="Date", ascending=False)
 
@@ -342,4 +349,4 @@ with col_tables:
             st.markdown("") 
             
     if not has_any_threats:
-        st.caption("No direct article threat links available for display across risk vectors.")
+        st.caption("No direct article threat links available for display in the latest month.")
