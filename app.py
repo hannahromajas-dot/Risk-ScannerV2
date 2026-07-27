@@ -122,7 +122,7 @@ vectorizer, erm_model = train_erm_classifier()
 
 
 # ==============================================================================
-# SECTION 3: DATA INGESTION PIPELINE (ROBUST RSS QUERY + ADVANCED CLEANING)
+# SECTION 3: DATA INGESTION PIPELINE (RISK-TARGETED RSS + ADVANCED CLEANING)
 # ==============================================================================
 def clean_headline(raw_title):
     if not raw_title:
@@ -148,7 +148,10 @@ def load_combined_dataset(selected_region, selected_industry):
     keywords = INDUSTRY_MAP[selected_industry]
     geo_term = REGION_TERM_MAP.get(selected_region, "business")
     
-    query = f"{keywords[0]} {geo_term}"
+    # Risk-targeted query terms to ensure robust threat surfacing
+    risk_triggers = "risk OR breach OR lawsuit OR fine OR outage OR shortage OR crisis OR failure OR drop OR decline"
+    query = f"({keywords[0]} OR {keywords[1]}) AND ({risk_triggers}) AND ({geo_term})"
+    
     encoded_query = urllib.parse.quote(query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
     
