@@ -122,7 +122,7 @@ vectorizer, erm_model = train_erm_classifier()
 
 
 # ==============================================================================
-# SECTION 3: DATA INGESTION PIPELINE (RISK-TARGETED RSS + ADVANCED CLEANING)
+# SECTION 3: DATA INGESTION PIPELINE (STABLE BROAD RSS + UNIFIED NORMALIZATION)
 # ==============================================================================
 def clean_headline(raw_title):
     if not raw_title:
@@ -148,16 +148,15 @@ def load_combined_dataset(selected_region, selected_industry):
     keywords = INDUSTRY_MAP[selected_industry]
     geo_term = REGION_TERM_MAP.get(selected_region, "business")
     
-    risk_triggers = "risk OR breach OR lawsuit OR fine OR outage OR shortage OR crisis OR failure OR drop OR decline"
-    query = f"({keywords[0]} OR {keywords[1]}) AND ({risk_triggers}) AND ({geo_term})"
-    
+    # Stable, broad ingestion query ensuring consistent volume across all sectors
+    query = f"{keywords[0]} {geo_term}"
     encoded_query = urllib.parse.quote(query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
     
     feed = feedparser.parse(rss_url)
     live_records = []
     
-    for entry in feed.entries[:30]:
+    for entry in feed.entries[:40]: # Expanded sample size for robust coverage
         if hasattr(entry, "published_parsed") and entry.published_parsed:
             parsed_date = datetime(*entry.published_parsed[:6]).strftime("%Y-%m-%d")
         else:
