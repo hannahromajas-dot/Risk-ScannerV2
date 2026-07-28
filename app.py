@@ -148,7 +148,6 @@ def load_combined_dataset(selected_region, selected_industry):
     keywords = INDUSTRY_MAP[selected_industry]
     geo_term = REGION_TERM_MAP.get(selected_region, "business")
     
-    # Stable, broad ingestion query ensuring consistent volume across all sectors
     query = f"{keywords[0]} {geo_term}"
     encoded_query = urllib.parse.quote(query)
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
@@ -156,7 +155,7 @@ def load_combined_dataset(selected_region, selected_industry):
     feed = feedparser.parse(rss_url)
     live_records = []
     
-    for entry in feed.entries[:40]: # Expanded sample size for robust coverage
+    for entry in feed.entries[:40]:
         if hasattr(entry, "published_parsed") and entry.published_parsed:
             parsed_date = datetime(*entry.published_parsed[:6]).strftime("%Y-%m-%d")
         else:
@@ -209,7 +208,7 @@ sector_df = full_dataset[
 
 
 # ==============================================================================
-# SECTION 5: RIGHT-HAND SIDE - RISK TREND ANALYSIS (STACKED BAR CHART)
+# SECTION 5: RIGHT-HAND SIDE - RISK TREND ANALYSIS (STRICT 12-MONTH STACKED BAR CHART)
 # ==============================================================================
 st.subheader("📈 Risk Trend Analysis - Past 12 Months")
 st.caption(f"Monthly Risk Vector Volume for **{selected_industry}** in **{selected_region}**")
@@ -225,10 +224,16 @@ if not sector_df.empty:
     ].copy()
     
     monthly_counts = risk_only_df.groupby(["YearMonth", "Risk_Vector"]).size().unstack(fill_value=0)
+    monthly_counts = monthly_counts.sort_index()
+    
+    # Strictly enforce a 12-month rolling window (last 12 individual months)
+    monthly_counts = monthly_counts.tail(12)
     
     for rv in RISK_VECTORS_ORDER:
         if rv not in monthly_counts.columns:
             monthly_counts[rv] = 0
+            
+    monthly_counts = monthly_counts[RISK_VECTORS_ORDER]
 
     with col_graph:
         fig = go.Figure()
@@ -283,12 +288,12 @@ st.divider()
 
 
 # ==============================================================================
-# SECTION 6: RECENT THREATS (FULLY SYNCHRONIZED TO LATEST MONTH)
+# SECTION 6: RECENT THREATS (FULLY SYNCHRONIZED TO LATEST MONTH IN CHART)
 # ==============================================================================
 st.subheader("⚠️ Recent Threats - Latest Month")
 
-if not risk_only_df.empty:
-    latest_month = risk_only_df["YearMonth"].max()
+if not monthly_counts.empty:
+    latest_month = monthly_counts.index.max()
     recent_df = risk_only_df[risk_only_df["YearMonth"] == latest_month].copy()
     
     month_name = latest_month.strftime("%B %Y")
