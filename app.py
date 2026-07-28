@@ -122,7 +122,7 @@ vectorizer, erm_model = train_erm_classifier()
 
 
 # ==============================================================================
-# SECTION 3: DATA INGESTION PIPELINE (STABLE BROAD RSS + UNIFIED NORMALIZATION)
+# SECTION 3: DATA INGESTION PIPELINE (ROBUST RSS QUERY + ADVANCED CLEANING)
 # ==============================================================================
 def clean_headline(raw_title):
     if not raw_title:
@@ -155,7 +155,7 @@ def load_combined_dataset(selected_region, selected_industry):
     feed = feedparser.parse(rss_url)
     live_records = []
     
-    for entry in feed.entries[:40]:
+    for entry in feed.entries[:30]:
         if hasattr(entry, "published_parsed") and entry.published_parsed:
             parsed_date = datetime(*entry.published_parsed[:6]).strftime("%Y-%m-%d")
         else:
@@ -208,7 +208,7 @@ sector_df = full_dataset[
 
 
 # ==============================================================================
-# SECTION 5: RIGHT-HAND SIDE - RISK TREND ANALYSIS (GUARANTEED 12-MONTH STACKED BAR CHART)
+# SECTION 5: RIGHT-HAND SIDE - RISK TREND ANALYSIS (STACKED BAR CHART)
 # ==============================================================================
 st.subheader("📈 Risk Trend Analysis - Past 12 Months")
 st.caption(f"Monthly Risk Vector Volume for **{selected_industry}** in **{selected_region}**")
@@ -218,25 +218,12 @@ col_graph, col_arrows = st.columns([2, 1])
 if not sector_df.empty:
     sector_df["YearMonth"] = sector_df["Date"].dt.to_period("M").dt.to_timestamp()
     
-    risk_only_df = sector_df[
-        (sector_df["Risk_Vector"] != "General (Neutral / Positive)") &
-        (sector_df["Link"].str.startswith("http", na=False))
-    ].copy()
-    
+    risk_only_df = sector_df[sector_df["Risk_Vector"] != "General (Neutral / Positive)"]
     monthly_counts = risk_only_df.groupby(["YearMonth", "Risk_Vector"]).size().unstack(fill_value=0)
-    
-    # BUILD A GUARANTEED 12-MONTH PERIOD RANGE ENDING THIS MONTH
-    end_date = datetime.now().replace(day=1)
-    full_12m_range = pd.date_range(end=end_date, periods=12, freq='MS')
-    
-    # Reindex to force all 12 individual calendar months to appear (filling missing months with 0)
-    monthly_counts = monthly_counts.reindex(full_12m_range, fill_value=0)
     
     for rv in RISK_VECTORS_ORDER:
         if rv not in monthly_counts.columns:
             monthly_counts[rv] = 0
-            
-    monthly_counts = monthly_counts[RISK_VECTORS_ORDER]
 
     with col_graph:
         fig = go.Figure()
@@ -291,19 +278,16 @@ st.divider()
 
 
 # ==============================================================================
-# SECTION 6: RECENT THREATS (FULLY SYNCHRONIZED TO LATEST MONTH IN CHART)
+# SECTION 6: RECENT THREATS (LAST 14 DAYS) & SEPARATE SORTED TABLES
 # ==============================================================================
-st.subheader("⚠️ Recent Threats - Latest Month")
+st.subheader("⚠️ Recent Threats - Last 14 Days")
 
-if not monthly_counts.empty:
-    latest_month = monthly_counts.index.max()
-    recent_df = risk_only_df[risk_only_df["YearMonth"] == latest_month].copy()
-    
-    month_name = latest_month.strftime("%B %Y")
-    st.caption(f"Threats detected in **{month_name}** (100% synchronized with the final bar in the Trend Analysis)")
-else:
-    recent_df = pd.DataFrame()
-    st.caption("No threat data available for the latest month.")
+fourteen_days_ago = pd.to_datetime(datetime.now() - timedelta(days=14))
+recent_df = sector_df[
+    (sector_df["Date"] >= fourteen_days_ago) & 
+    (sector_df["Risk_Vector"] != "General (Neutral / Positive)") &
+    (sector_df["Link"].str.startswith("http", na=False))
+].copy()
 
 recent_df = recent_df.sort_values(by="Date", ascending=False)
 
@@ -355,4 +339,4 @@ with col_tables:
             st.markdown("") 
             
     if not has_any_threats:
-        st.caption("No direct article threat links available for display in the latest month.")
+        st.caption("No direct article threat links available for display across risk vectors.")
