@@ -208,7 +208,7 @@ sector_df = full_dataset[
 
 
 # ==============================================================================
-# SECTION 5: RIGHT-HAND SIDE - RISK TREND ANALYSIS (STRICT 12-MONTH STACKED BAR CHART)
+# SECTION 5: RIGHT-HAND SIDE - RISK TREND ANALYSIS (GUARANTEED 12-MONTH STACKED BAR CHART)
 # ==============================================================================
 st.subheader("📈 Risk Trend Analysis - Past 12 Months")
 st.caption(f"Monthly Risk Vector Volume for **{selected_industry}** in **{selected_region}**")
@@ -224,10 +224,13 @@ if not sector_df.empty:
     ].copy()
     
     monthly_counts = risk_only_df.groupby(["YearMonth", "Risk_Vector"]).size().unstack(fill_value=0)
-    monthly_counts = monthly_counts.sort_index()
     
-    # Strictly enforce a 12-month rolling window (last 12 individual months)
-    monthly_counts = monthly_counts.tail(12)
+    # BUILD A GUARANTEED 12-MONTH PERIOD RANGE ENDING THIS MONTH
+    end_date = datetime.now().replace(day=1)
+    full_12m_range = pd.date_range(end=end_date, periods=12, freq='MS')
+    
+    # Reindex to force all 12 individual calendar months to appear (filling missing months with 0)
+    monthly_counts = monthly_counts.reindex(full_12m_range, fill_value=0)
     
     for rv in RISK_VECTORS_ORDER:
         if rv not in monthly_counts.columns:
