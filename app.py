@@ -14,7 +14,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # ==============================================================================
-# SECTION 1: PAGE CONFIGURATION & LAYOUT
+# SECTION 1: PAGE CONFIGURATION & SESSION STATE
 # ==============================================================================
 st.set_page_config(
     page_title="Enterprise Risk Scanner",
@@ -23,25 +23,57 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Dark-mode toggle with improved CSS coverage
+# Page navigation via session state
+if "page" not in st.session_state:
+    st.session_state.page = "main"
+
+# Dark-mode toggle
 dark_mode = st.sidebar.toggle("🌙 Dark Mode", value=False)
 
+# Comprehensive dark-mode CSS for legibility
 if dark_mode:
     st.markdown(
         """
         <style>
-        .stApp {
-            background-color: #0e1117;
-            color: #fafafa;
+        /* App background & base text */
+        .stApp, [data-testid="stAppViewContainer"] {
+            background-color: #0e1117 !important;
+            color: #f0f2f6 !important;
         }
+        /* Sidebar */
         [data-testid="stSidebar"] {
-            background-color: #1a1d24;
+            background-color: #161b22 !important;
+            color: #f0f2f6 !important;
         }
-        .stMarkdown, .stCaption, h1, h2, h3, h4 {
-            color: #fafafa !important;
+        [data-testid="stSidebar"] * {
+            color: #f0f2f6 !important;
         }
-        div[data-testid="stDataFrame"] {
-            background-color: #1a1d24;
+        /* Headings & markdown */
+        h1, h2, h3, h4, h5, h6,
+        .stMarkdown, .stMarkdown p, .stMarkdown li,
+        .stCaption, label, .stText, p, span, div {
+            color: #f0f2f6 !important;
+        }
+        /* Widgets */
+        .stSelectbox label, .stToggle label, .stButton button {
+            color: #f0f2f6 !important;
+        }
+        /* Dataframes / tables */
+        [data-testid="stDataFrame"], .dataframe {
+            background-color: #1c2128 !important;
+            color: #f0f2f6 !important;
+        }
+        /* Dividers & captions */
+        hr, .stDivider {
+            border-color: #30363d !important;
+        }
+        /* Links */
+        a {
+            color: #58a6ff !important;
+        }
+        /* Metric / info boxes */
+        [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+            color: #f0f2f6 !important;
         }
         </style>
         """,
@@ -60,12 +92,8 @@ else:
         unsafe_allow_html=True,
     )
 
-st.title("🏛️ Enterprise Market Risk Management Scanner")
-st.markdown("**Real-Time & 12-Month Longitudinal Media Threat Intelligence**")
-st.divider()
-
 # ==============================================================================
-# SECTION 2: INDUSTRY & REGIONAL MAPPINGS & AI CLASSIFIER TRAINING
+# SECTION 2: INDUSTRY & REGIONAL MAPPINGS & AI CLASSIFIER
 # ==============================================================================
 REGIONS_LIST = [
     "Global",
@@ -331,9 +359,16 @@ def load_combined_dataset(selected_region: str, selected_industry: str) -> pd.Da
     return full_df
 
 # ==============================================================================
-# SECTION 4: SIDEBAR CONTROLS
+# SECTION 4: SIDEBAR – ALWAYS VISIBLE CONTROLS + ABOUT BUTTON
 # ==============================================================================
 st.sidebar.header("⚙️ Filter Controls")
+
+# About button in sidebar (always available)
+if st.sidebar.button("ℹ️ About This Project", use_container_width=True):
+    st.session_state.page = "about"
+    st.rerun()
+
+st.sidebar.markdown("---")
 
 selected_region = st.sidebar.selectbox("1) Select Region:", options=REGIONS_LIST)
 selected_industry = st.sidebar.selectbox(
@@ -344,201 +379,310 @@ if st.sidebar.button("🔄 Refresh Data", help="Clear cache and re-fetch live he
     st.cache_data.clear()
     st.rerun()
 
-st.markdown(f"### 🌐 Active Scope: **{selected_industry}** | 📍 **{selected_region}**")
-st.markdown("---")
-
-full_dataset = load_combined_dataset(selected_region, selected_industry)
-
-# Exact region + industry match
-sector_df = full_dataset[
-    (full_dataset["Industry"] == selected_industry)
-    & (full_dataset["Region"] == selected_region)
-].copy()
-
 # ==============================================================================
-# SECTION 5: RISK TREND ANALYSIS (STACKED BAR – LAST 12 MONTHS)
+# SECTION 5: PAGE ROUTING
 # ==============================================================================
-st.subheader("📈 Risk Trend Analysis – Past 12 Months")
-st.caption(f"Monthly Risk Vector Volume for **{selected_industry}** in **{selected_region}**")
+if st.session_state.page == "about":
+    # -------------------- ABOUT PAGE --------------------
+    st.title("ℹ️ About This Project")
+    st.markdown("**Project Outline: Interactive Enterprise Market Risk Scanner**")
+    st.divider()
 
-col_graph, col_arrows = st.columns([2.2, 1])
+    # Back button at the top for convenience
+    if st.button("⬅️ Back to Risk Scanner", type="primary"):
+        st.session_state.page = "main"
+        st.rerun()
 
-if sector_df.empty:
-    st.info("No historical data available for this combination yet. Try another region/industry or wait for live data.")
-else:
-    # Restrict to last 12 months and force complete month index
-    cutoff = pd.Timestamp.now() - pd.DateOffset(months=12)
-    sector_df = sector_df[sector_df["Date"] >= cutoff].copy()
+    st.markdown("---")
 
-    sector_df["YearMonth"] = sector_df["Date"].dt.to_period("M").dt.to_timestamp()
-
-    risk_only_df = sector_df[sector_df["Risk_Vector"] != "General (Neutral / Positive)"]
-
-    end_month = pd.Timestamp.now().to_period("M").to_timestamp()
-    start_month = end_month - pd.DateOffset(months=11)
-    full_months = pd.date_range(start_month, end_month, freq="MS")
-
-    monthly_counts = (
-        risk_only_df.groupby(["YearMonth", "Risk_Vector"])
-        .size()
-        .unstack(fill_value=0)
-        .reindex(full_months, fill_value=0)
+    # 1. What This Project Does
+    st.header("1. What This Project Does (Business Purpose)")
+    st.markdown(
+        """
+Businesses and investors deal with thousands of news articles every day, making it impossible to spot major threats—like supply chain failures, lawsuits, or financial crashes—before it's too late. This app acts as an AI-powered early warning system that automatically reads, groups, and sorts business news headlines.
+        """
     )
 
-    for rv in RISK_VECTORS_ORDER:
-        if rv not in monthly_counts.columns:
-            monthly_counts[rv] = 0
-    monthly_counts = monthly_counts[RISK_VECTORS_ORDER]
+    st.subheader("How Managers Can Use It")
+    st.markdown(
+        """
+Operations managers can track recent risk trends in their specific industry and region (like manufacturing delays in Europe) so they can fix problems before they turn into full-blown crises.
+        """
+    )
 
-    with col_graph:
-        fig = go.Figure()
+    st.subheader("How Investors Can Use It")
+    st.markdown(
+        """
+Investors can look at past 12-month threat charts to see how a company or sector's risk levels have changed over time, helping them make smarter choices with their money.
+        """
+    )
+
+    st.markdown("---")
+
+    # 2. Tools Used
+    st.header("2. Tools Used")
+    st.markdown(
+        """
+* **Streamlit**: Powers the interactive web dashboard where users can click dropdown menus, toggle dark mode, and view live charts.
+* **GitHub**: Stores all the project code files and uses automated workflows to run background updates every single night.
+* **Google RSS**: Pulls live, real-time news headlines based on the industry and region you select.
+* **Kaggle / CSV Data**: Stores the historical news records so the app can show past trends over the full year without relying only on today's news.
+* **Python & Scikit-Learn**: Uses machine learning (TF-IDF and Logistic Regression) to read incoming headlines and sort them into different risk categories.
+        """
+    )
+
+    st.markdown("---")
+
+    # 3. Data Sources Used
+    st.header("3. Data Sources Used")
+    st.markdown(
+        """
+* **Live Google News Feeds**: Pulls fresh news articles on the fly.
+* **Historical CSV File**: Stores older saved news data to keep past months visible on the charts.
+        """
+    )
+
+    st.markdown("---")
+
+    # 4. Limitations
+    st.header("4. Limitations")
+    st.markdown(
+        """
+* **Smart Guessing (Model Limits)**: The AI was trained on a small starter list of examples, so if it reads brand-new or unusual phrasing (like a strange banking ad), it might occasionally mislabel it.
+* **Quiet News Cycles**: If an industry hasn't had much media attention lately, the live feed might look a bit empty.
+* **Messy Headlines**: Raw news titles often come with weird tags (like [Opinion]) or publisher names that require extra cleaning to look nice on the screen.
+        """
+    )
+
+    st.markdown("---")
+
+    # 5. Future Ideas
+    st.header("5. Future Ideas")
+    st.markdown(
+        """
+* **Smarter AI Models**: Upgrading to advanced deep learning tools that understand business tone and context even better.
+* **Automatic Alerts**: Setting up text or email alerts to notify managers immediately if a certain type of risk suddenly spikes.
+* **Multi-Language News**: Expanding the app to scan business news written in other languages, like German financial reports.
+        """
+    )
+
+    st.markdown("---")
+    if st.button("⬅️ Back to Risk Scanner", key="back_bottom", type="primary"):
+        st.session_state.page = "main"
+        st.rerun()
+
+else:
+    # -------------------- MAIN RISK SCANNER PAGE --------------------
+    st.title("🏛️ Enterprise Market Risk Management Scanner")
+    st.markdown("**Real-Time & 12-Month Longitudinal Media Threat Intelligence**")
+
+    # About button immediately below the main heading
+    if st.button("ℹ️ About This Project"):
+        st.session_state.page = "about"
+        st.rerun()
+
+    st.divider()
+
+    st.markdown(f"### 🌐 Active Scope: **{selected_industry}** | 📍 **{selected_region}**")
+    st.markdown("---")
+
+    full_dataset = load_combined_dataset(selected_region, selected_industry)
+
+    # Exact region + industry match
+    sector_df = full_dataset[
+        (full_dataset["Industry"] == selected_industry)
+        & (full_dataset["Region"] == selected_region)
+    ].copy()
+
+    # Plotly template based on dark mode
+    plotly_template = "plotly_dark" if dark_mode else "plotly_white"
+
+    # ==============================================================================
+    # RISK TREND ANALYSIS (STACKED BAR – LAST 12 MONTHS)
+    # ==============================================================================
+    st.subheader("📈 Risk Trend Analysis – Past 12 Months")
+    st.caption(f"Monthly Risk Vector Volume for **{selected_industry}** in **{selected_region}**")
+
+    col_graph, col_arrows = st.columns([2.2, 1])
+
+    if sector_df.empty:
+        st.info("No historical data available for this combination yet. Try another region/industry or wait for live data.")
+    else:
+        # Restrict to last 12 months and force complete month index
+        cutoff = pd.Timestamp.now() - pd.DateOffset(months=12)
+        sector_df = sector_df[sector_df["Date"] >= cutoff].copy()
+
+        sector_df["YearMonth"] = sector_df["Date"].dt.to_period("M").dt.to_timestamp()
+
+        risk_only_df = sector_df[sector_df["Risk_Vector"] != "General (Neutral / Positive)"]
+
+        end_month = pd.Timestamp.now().to_period("M").to_timestamp()
+        start_month = end_month - pd.DateOffset(months=11)
+        full_months = pd.date_range(start_month, end_month, freq="MS")
+
+        monthly_counts = (
+            risk_only_df.groupby(["YearMonth", "Risk_Vector"])
+            .size()
+            .unstack(fill_value=0)
+            .reindex(full_months, fill_value=0)
+        )
+
         for rv in RISK_VECTORS_ORDER:
-            fig.add_trace(
-                go.Bar(
-                    x=monthly_counts.index,
-                    y=monthly_counts[rv],
-                    name=rv,
-                    marker_color=VECTOR_COLORS[rv],
+            if rv not in monthly_counts.columns:
+                monthly_counts[rv] = 0
+        monthly_counts = monthly_counts[RISK_VECTORS_ORDER]
+
+        with col_graph:
+            fig = go.Figure()
+            for rv in RISK_VECTORS_ORDER:
+                fig.add_trace(
+                    go.Bar(
+                        x=monthly_counts.index,
+                        y=monthly_counts[rv],
+                        name=rv,
+                        marker_color=VECTOR_COLORS[rv],
+                    )
                 )
+            fig.update_layout(
+                barmode="stack",
+                height=400,
+                margin=dict(l=10, r=10, t=30, b=10),
+                xaxis=dict(title="Last 12 Months", tickformat="%b %Y"),
+                yaxis=dict(title="Headline Count"),
+                legend=dict(
+                    orientation="h",
+                    y=1.08,
+                    x=1,
+                    xanchor="right",
+                    yanchor="bottom",
+                ),
+                template=plotly_template,
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
             )
-        fig.update_layout(
-            barmode="stack",
-            height=400,
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col_arrows:
+            st.markdown("#### 3-Mo vs 12-Mo Trend")
+
+            monthly_total_risk = monthly_counts.sum(axis=1)
+
+            def calculate_trend_arrow(series_3mo, series_12mo, label_name):
+                avg_3m = series_3mo.mean() if len(series_3mo) > 0 else 0.0
+                avg_12m = series_12mo.mean() if len(series_12mo) > 0 else 0.0
+
+                if avg_12m == 0:
+                    diff_pct = 0.0
+                else:
+                    diff_pct = ((avg_3m - avg_12m) / avg_12m) * 100
+
+                if diff_pct <= -10.0:
+                    colored = f"<span style='color:#2ecc71; font-weight:bold;'>⬇️ Down {abs(diff_pct):.1f}% vs 12-mo avg</span>"
+                elif diff_pct >= 10.0:
+                    colored = f"<span style='color:#e74c3c; font-weight:bold;'>⬆️ Up {diff_pct:.1f}% vs 12-mo avg</span>"
+                else:
+                    colored = f"<span style='color:#3498db; font-weight:bold;'>➡️ Flat ({diff_pct:+.1f}% vs 12-mo avg)</span>"
+
+                st.markdown(f"**{label_name}:**<br>{colored}", unsafe_allow_html=True)
+
+            last_3m_total = monthly_total_risk.tail(3)
+            calculate_trend_arrow(last_3m_total, monthly_total_risk, "Overall Risk")
+
+            for rv in RISK_VECTORS_ORDER:
+                last_3m_rv = monthly_counts[rv].tail(3)
+                calculate_trend_arrow(last_3m_rv, monthly_counts[rv], rv)
+
+    st.divider()
+
+    # ==============================================================================
+    # RECENT THREATS (LAST 14 DAYS) – PIE CHART
+    # ==============================================================================
+    st.subheader("⚠️ Recent Threats – Last 14 Days")
+
+    fourteen_days_ago = pd.Timestamp.now() - timedelta(days=14)
+
+    recent_df = sector_df[
+        (sector_df["Date"] >= fourteen_days_ago)
+        & (sector_df["Risk_Vector"] != "General (Neutral / Positive)")
+    ].copy()
+
+    recent_df = recent_df.sort_values(by="Date", ascending=False)
+
+    col_pie, col_tables = st.columns([1, 1.6])
+
+    with col_pie:
+        st.markdown("#### Threat Distribution by Vector")
+
+        if not recent_df.empty:
+            pie_counts = recent_df["Risk_Vector"].value_counts()
+        else:
+            pie_counts = pd.Series(0, index=RISK_VECTORS_ORDER)
+
+        pie_counts = pie_counts.reindex(RISK_VECTORS_ORDER, fill_value=0)
+        pie_colors = [VECTOR_COLORS[rv] for rv in pie_counts.index]
+
+        fig_pie = go.Figure(
+            data=[
+                go.Pie(
+                    labels=pie_counts.index,
+                    values=pie_counts.values,
+                    marker=dict(colors=pie_colors),
+                    textinfo="label+percent+value",
+                    hole=0.35,
+                    sort=False,
+                )
+            ]
+        )
+        fig_pie.update_layout(
+            height=360,
             margin=dict(l=10, r=10, t=30, b=10),
-            xaxis=dict(title="Last 12 Months", tickformat="%b %Y"),
-            yaxis=dict(title="Headline Count"),
-            legend=dict(
-                orientation="h",
-                y=1.08,
-                x=1,
-                xanchor="right",
-                yanchor="bottom",
-            ),
+            template=plotly_template,
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
+            showlegend=True,
+            legend=dict(orientation="h", y=-0.1),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig_pie, use_container_width=True)
 
-    with col_arrows:
-        st.markdown("#### 3-Mo vs 12-Mo Trend")
+    with col_tables:
+        st.markdown("#### Top Headlines by Risk Vector")
 
-        monthly_total_risk = monthly_counts.sum(axis=1)
-
-        def calculate_trend_arrow(series_3mo, series_12mo, label_name):
-            avg_3m = series_3mo.mean() if len(series_3mo) > 0 else 0.0
-            avg_12m = series_12mo.mean() if len(series_12mo) > 0 else 0.0
-
-            if avg_12m == 0:
-                diff_pct = 0.0
-            else:
-                diff_pct = ((avg_3m - avg_12m) / avg_12m) * 100
-
-            if diff_pct <= -10.0:
-                colored = f"<span style='color:#2ecc71; font-weight:bold;'>⬇️ Down {abs(diff_pct):.1f}% vs 12-mo avg</span>"
-            elif diff_pct >= 10.0:
-                colored = f"<span style='color:#e74c3c; font-weight:bold;'>⬆️ Up {diff_pct:.1f}% vs 12-mo avg</span>"
-            else:
-                colored = f"<span style='color:#3498db; font-weight:bold;'>➡️ Flat ({diff_pct:+.1f}% vs 12-mo avg)</span>"
-
-            st.markdown(f"**{label_name}:**<br>{colored}", unsafe_allow_html=True)
-
-        last_3m_total = monthly_total_risk.tail(3)
-        calculate_trend_arrow(last_3m_total, monthly_total_risk, "Overall Risk")
+        has_any_threats = False
 
         for rv in RISK_VECTORS_ORDER:
-            last_3m_rv = monthly_counts[rv].tail(3)
-            calculate_trend_arrow(last_3m_rv, monthly_counts[rv], rv)
+            sub_rv = recent_df[recent_df["Risk_Vector"] == rv].head(4)
+            if sub_rv.empty:
+                continue
 
-st.divider()
+            has_any_threats = True
+            st.markdown(f"**{rv} Risk**")
 
-# ==============================================================================
-# SECTION 6: RECENT THREATS (LAST 14 DAYS)
-# ==============================================================================
-st.subheader("⚠️ Recent Threats – Last 14 Days")
+            display_rows = []
+            for _, row in sub_rv.iterrows():
+                link = row["Link"] if isinstance(row["Link"], str) and row["Link"].startswith("http") else None
+                headline_md = f"[{row['Headline']}]({link})" if link else row["Headline"]
+                display_rows.append(
+                    {
+                        "Date": row["Date"].strftime("%Y-%m-%d"),
+                        "Keyword": row["Keyword"],
+                        "Headline": headline_md,
+                    }
+                )
 
-fourteen_days_ago = pd.Timestamp.now() - timedelta(days=14)
+            top_df = pd.DataFrame(display_rows)
+            st.markdown(top_df.to_markdown(index=False), unsafe_allow_html=True)
+            st.markdown("")
 
-recent_df = sector_df[
-    (sector_df["Date"] >= fourteen_days_ago)
-    & (sector_df["Risk_Vector"] != "General (Neutral / Positive)")
-].copy()
-
-# Prefer rows that have real links
-recent_df = recent_df.sort_values(by="Date", ascending=False)
-
-col_bar, col_tables = st.columns([1, 1.6])
-
-with col_bar:
-    st.markdown("#### Threat Count by Vector")
-
-    if not recent_df.empty:
-        bar_counts = recent_df["Risk_Vector"].value_counts()
-    else:
-        bar_counts = pd.Series(0, index=RISK_VECTORS_ORDER)
-
-    bar_counts = bar_counts.reindex(RISK_VECTORS_ORDER, fill_value=0).reset_index()
-    bar_counts.columns = ["Risk Vector", "Count"]
-
-    bar_colors = [VECTOR_COLORS[rv] for rv in bar_counts["Risk Vector"]]
-
-    fig_bar = go.Figure(
-        go.Bar(
-            x=bar_counts["Risk Vector"],
-            y=bar_counts["Count"],
-            marker_color=bar_colors,
-            text=bar_counts["Count"],
-            textposition="auto",
-        )
-    )
-    fig_bar.update_layout(
-        height=320,
-        margin=dict(l=10, r=10, t=10, b=10),
-        yaxis=dict(title="Count"),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-    )
-    st.plotly_chart(fig_bar, use_container_width=True)
-
-with col_tables:
-    st.markdown("#### Top Headlines by Risk Vector")
-
-    has_any_threats = False
-
-    for rv in RISK_VECTORS_ORDER:
-        sub_rv = recent_df[recent_df["Risk_Vector"] == rv].head(4)
-        if sub_rv.empty:
-            continue
-
-        has_any_threats = True
-        st.markdown(f"**{rv} Risk**")
-
-        display_rows = []
-        for _, row in sub_rv.iterrows():
-            link = row["Link"] if isinstance(row["Link"], str) and row["Link"].startswith("http") else None
-            headline_md = f"[{row['Headline']}]({link})" if link else row["Headline"]
-            display_rows.append(
-                {
-                    "Date": row["Date"].strftime("%Y-%m-%d"),
-                    "Keyword": row["Keyword"],
-                    "Headline": headline_md,
-                }
+        if not has_any_threats:
+            st.caption(
+                "No recent risk-classified headlines with usable links found for this scope. "
+                "Try refreshing data or selecting a different region/industry."
             )
 
-        top_df = pd.DataFrame(display_rows)
-        # Render as markdown table so links stay clickable
-        st.markdown(top_df.to_markdown(index=False), unsafe_allow_html=True)
-        st.markdown("")
-
-    if not has_any_threats:
-        st.caption(
-            "No recent risk-classified headlines with usable links found for this scope. "
-            "Try refreshing data or selecting a different region/industry."
-        )
-
-# Footer note
-st.divider()
-st.caption(
-    "Classifier is a lightweight demo model (TF-IDF + Logistic Regression). "
-    "Expand the training corpus or replace with a stronger NLP model for production use. "
-    "Data is automatically persisted to historical_news.csv."
-)
+    # Footer note
+    st.divider()
+    st.caption(
+        "Classifier is a lightweight demo model (TF-IDF + Logistic Regression). "
+        "Expand the training corpus or replace with a stronger NLP model for production use. "
+        "Data is automatically persisted to historical_news.csv."
+    )
