@@ -81,25 +81,24 @@ if dark_mode:
             background-color: #2ea043 !important;
         }
 
-        /* ---------- Selectbox / Dropdown ---------- */
-        [data-testid="stSelectbox"] label,
-        [data-testid="stSelectbox"] div[data-baseweb="select"] {
-            color: #f0f2f6 !important;
+        /* ---------- Selectbox / Dropdown – keep light-mode appearance ---------- */
+        [data-testid="stSelectbox"] label {
+            color: #f0f2f6 !important;  /* label text still light for dark bg */
         }
         [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-            background-color: #21262d !important;
-            color: #f0f2f6 !important;
-            border-color: #30363d !important;
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border-color: #d0d5dd !important;
         }
-        /* Dropdown menu popup */
+        /* Dropdown menu popup stays light */
         div[data-baseweb="popover"] div[data-baseweb="menu"],
         div[data-baseweb="popover"] ul,
         div[data-baseweb="popover"] li {
-            background-color: #21262d !important;
-            color: #f0f2f6 !important;
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
         }
         div[data-baseweb="popover"] li:hover {
-            background-color: #30363d !important;
+            background-color: #f0f2f6 !important;
         }
 
         /* ---------- Toggle ---------- */
@@ -234,10 +233,10 @@ REGION_TERM_MAP = {
 RISK_VECTORS_ORDER = ["Regulatory", "Strategic", "Operational", "Financial"]
 
 VECTOR_COLORS = {
-    "Regulatory": "#FF6B6B",
-    "Strategic": "#DC143C",
-    "Operational": "#B22222",
-    "Financial": "#8B0000",
+    "Regulatory": "#FF8A80",  # Light coral / soft red
+    "Strategic": "#FF1744",   # Vivid bright red
+    "Operational": "#C62828", # Strong medium red
+    "Financial": "#6D1B1B",   # Deep burgundy / dark red
 }
 
 HISTORICAL_CSV = Path("historical_news.csv")
