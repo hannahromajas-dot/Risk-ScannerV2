@@ -30,48 +30,114 @@ if "page" not in st.session_state:
 # Dark-mode toggle
 dark_mode = st.sidebar.toggle("🌙 Dark Mode", value=False)
 
-# Comprehensive dark-mode CSS for legibility
+# Comprehensive light / dark CSS – backgrounds, text, buttons, dropdowns, inputs
 if dark_mode:
     st.markdown(
         """
         <style>
-        /* App background & base text */
-        .stApp, [data-testid="stAppViewContainer"] {
+        /* ---------- Base app ---------- */
+        .stApp, [data-testid="stAppViewContainer"],
+        [data-testid="stHeader"], [data-testid="stToolbar"] {
             background-color: #0e1117 !important;
             color: #f0f2f6 !important;
         }
-        /* Sidebar */
-        [data-testid="stSidebar"] {
+
+        /* ---------- Sidebar ---------- */
+        [data-testid="stSidebar"],
+        [data-testid="stSidebar"] > div:first-child {
             background-color: #161b22 !important;
             color: #f0f2f6 !important;
         }
         [data-testid="stSidebar"] * {
             color: #f0f2f6 !important;
         }
-        /* Headings & markdown */
+
+        /* ---------- Headings & body text ---------- */
         h1, h2, h3, h4, h5, h6,
-        .stMarkdown, .stMarkdown p, .stMarkdown li,
+        .stMarkdown, .stMarkdown p, .stMarkdown li, .stMarkdown span,
         .stCaption, label, .stText, p, span, div {
             color: #f0f2f6 !important;
         }
-        /* Widgets */
-        .stSelectbox label, .stToggle label, .stButton button {
+
+        /* ---------- Buttons ---------- */
+        .stButton > button {
+            background-color: #21262d !important;
+            color: #f0f2f6 !important;
+            border: 1px solid #30363d !important;
+            border-radius: 6px !important;
+        }
+        .stButton > button:hover {
+            background-color: #30363d !important;
+            border-color: #8b949e !important;
+            color: #ffffff !important;
+        }
+        .stButton > button[kind="primary"],
+        .stButton > button[data-testid="baseButton-primary"] {
+            background-color: #238636 !important;
+            border-color: #2ea043 !important;
+            color: #ffffff !important;
+        }
+        .stButton > button[kind="primary"]:hover {
+            background-color: #2ea043 !important;
+        }
+
+        /* ---------- Selectbox / Dropdown ---------- */
+        [data-testid="stSelectbox"] label,
+        [data-testid="stSelectbox"] div[data-baseweb="select"] {
             color: #f0f2f6 !important;
         }
-        /* Dataframes / tables */
+        [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+            background-color: #21262d !important;
+            color: #f0f2f6 !important;
+            border-color: #30363d !important;
+        }
+        /* Dropdown menu popup */
+        div[data-baseweb="popover"] div[data-baseweb="menu"],
+        div[data-baseweb="popover"] ul,
+        div[data-baseweb="popover"] li {
+            background-color: #21262d !important;
+            color: #f0f2f6 !important;
+        }
+        div[data-baseweb="popover"] li:hover {
+            background-color: #30363d !important;
+        }
+
+        /* ---------- Toggle ---------- */
+        [data-testid="stToggle"] label {
+            color: #f0f2f6 !important;
+        }
+
+        /* ---------- Text inputs / other widgets ---------- */
+        .stTextInput input, .stNumberInput input,
+        [data-baseweb="input"] {
+            background-color: #21262d !important;
+            color: #f0f2f6 !important;
+            border-color: #30363d !important;
+        }
+
+        /* ---------- Dataframes / tables ---------- */
         [data-testid="stDataFrame"], .dataframe {
             background-color: #1c2128 !important;
             color: #f0f2f6 !important;
         }
-        /* Dividers & captions */
+
+        /* ---------- Dividers ---------- */
         hr, .stDivider {
             border-color: #30363d !important;
         }
-        /* Links */
+
+        /* ---------- Links ---------- */
         a {
             color: #58a6ff !important;
         }
-        /* Metric / info boxes */
+
+        /* ---------- Info / success / warning boxes ---------- */
+        [data-testid="stAlert"] {
+            background-color: #1c2128 !important;
+            color: #f0f2f6 !important;
+        }
+
+        /* ---------- Metric ---------- */
         [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
             color: #f0f2f6 !important;
         }
@@ -83,9 +149,42 @@ else:
     st.markdown(
         """
         <style>
-        .stApp {
-            background-color: #ffffff;
-            color: #1a1a1a;
+        /* ---------- Light mode base ---------- */
+        .stApp, [data-testid="stAppViewContainer"] {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+        }
+        [data-testid="stSidebar"] {
+            background-color: #f0f2f6 !important;
+            color: #1a1a1a !important;
+        }
+
+        /* ---------- Buttons (light) ---------- */
+        .stButton > button {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border: 1px solid #d0d5dd !important;
+            border-radius: 6px !important;
+        }
+        .stButton > button:hover {
+            background-color: #f0f2f6 !important;
+            border-color: #98a2b3 !important;
+        }
+        .stButton > button[kind="primary"],
+        .stButton > button[data-testid="baseButton-primary"] {
+            background-color: #ff4b4b !important;
+            border-color: #ff4b4b !important;
+            color: #ffffff !important;
+        }
+        .stButton > button[kind="primary"]:hover {
+            background-color: #e03c3c !important;
+        }
+
+        /* ---------- Selectbox (light) ---------- */
+        [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border-color: #d0d5dd !important;
         }
         </style>
         """,
@@ -559,8 +658,9 @@ else:
                 template=plotly_template,
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#f0f2f6" if dark_mode else "#1a1a1a"),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, theme=None)
 
         with col_arrows:
             st.markdown("#### 3-Mo vs 12-Mo Trend")
@@ -641,8 +741,9 @@ else:
             paper_bgcolor="rgba(0,0,0,0)",
             showlegend=True,
             legend=dict(orientation="h", y=-0.1),
+            font=dict(color="#f0f2f6" if dark_mode else "#1a1a1a"),
         )
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.plotly_chart(fig_pie, use_container_width=True, theme=None)
 
     with col_tables:
         st.markdown("#### Top Headlines by Risk Vector")
