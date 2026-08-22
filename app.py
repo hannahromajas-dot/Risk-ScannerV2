@@ -591,6 +591,7 @@ else:
     # -------------------- MAIN RISK SCANNER PAGE --------------------
     st.title("🏛️ News Headline Risk Scanner")
     st.markdown("**Real-Time News Headline Risk Scanner**")
+    st.markdown("**A Student Project by Hannah Romajas**")
 
     if st.button("ℹ️ About This Project"):
         st.session_state.page = "about"
