@@ -80,5 +80,5 @@ def run_daily_archiver():
     print(f" Daily archive completed. Full dataset now has {len(combined_df)} records.")
 
 if __name__ == "__main__":
-    Run_daily_archiver()
+    run_daily_archiver()
 
