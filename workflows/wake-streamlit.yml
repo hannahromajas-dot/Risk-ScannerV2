@@ -1,4 +1,4 @@
-name: Wake Streamlit App
+name: Wake Streamlit App 
 
 on:
   schedule:
