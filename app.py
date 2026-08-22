@@ -739,7 +739,7 @@ else:
     col_pie, col_tables = st.columns([1, 1.6])
 
     with col_pie:
-        st.markdown("#### Threat Distribution by Vector")
+        st.markdown("#### Risk Type Distribution")
 
         if not recent_df.empty:
             pie_counts = recent_df["Risk_Vector"].value_counts()
