@@ -494,24 +494,24 @@ if st.session_state.page == "about":
     st.markdown("---")
 
     # 1. What This Project Does
-    st.header("1. What This Project Does (Business Purpose)")
+    st.header("1. Business Purpose")
     st.markdown(
         """
-Businesses and investors deal with thousands of news articles every day, making it impossible to spot major threats—like supply chain failures, lawsuits, or financial crashes—before it's too late. This app acts as an AI-powered early warning system that automatically reads, groups, and sorts business news headlines.
+Business managers and investors face many news articles every day, making it difficult to spot threats—like supply chain failures, lawsuits, or financial stress. This app runs as an AI-powered early warning system that automatically reads, groups, and sorts business news headlines based on potential threats.
         """
     )
 
     st.subheader("How Managers Can Use It")
     st.markdown(
         """
-Operations managers can track recent risk trends in their specific industry and region (like manufacturing delays in Europe) so they can fix problems before they turn into full-blown crises.
+Business managers can identify recent risk trends in their specific industry and region (like manufacturing in Europe) so they can mitigate problems before it is too late.
         """
     )
 
     st.subheader("How Investors Can Use It")
     st.markdown(
         """
-Investors can look at past 12-month threat charts to see how a company or sector's risk levels have changed over time, helping them make smarter choices with their money.
+Investors can look at the past 12-month risk trends to see how a company or sector's risk levels are trending, helping them make smarter investment decisions.
         """
     )
 
@@ -521,24 +521,14 @@ Investors can look at past 12-month threat charts to see how a company or sector
     st.header("2. Tools Used")
     st.markdown(
         """
+* **Python & Scikit-Learn**: Uses machine learning (TF-IDF and Logistic Regression) to read incoming headlines and sort them into different risk categories.
+* **Kaggle / CSV Data**: Stores the historical news records so the app can show past trends over the full year without relying only on today's news.
+* **Google RSS**: Pulls live, real-time news headlines based on the industry and region you select.
 * **Streamlit**: Powers the interactive web dashboard where users can click dropdown menus, toggle dark mode, and view live charts.
 * **GitHub**: Stores all the project code files and uses automated workflows to run background updates every single night.
-* **Google RSS**: Pulls live, real-time news headlines based on the industry and region you select.
-* **Kaggle / CSV Data**: Stores the historical news records so the app can show past trends over the full year without relying only on today's news.
-* **Python & Scikit-Learn**: Uses machine learning (TF-IDF and Logistic Regression) to read incoming headlines and sort them into different risk categories.
         """
     )
 
-    st.markdown("---")
-
-    # 3. Data Sources Used
-    st.header("3. Data Sources Used")
-    st.markdown(
-        """
-* **Live Google News Feeds**: Pulls fresh news articles on the fly.
-* **Historical CSV File**: Stores older saved news data to keep past months visible on the charts.
-        """
-    )
 
     st.markdown("---")
 
@@ -547,7 +537,6 @@ Investors can look at past 12-month threat charts to see how a company or sector
     st.markdown(
         """
 * **Smart Guessing (Model Limits)**: The AI was trained on a small starter list of examples, so if it reads brand-new or unusual phrasing (like a strange banking ad), it might occasionally mislabel it.
-* **Quiet News Cycles**: If an industry hasn't had much media attention lately, the live feed might look a bit empty.
 * **Messy Headlines**: Raw news titles often come with weird tags (like [Opinion]) or publisher names that require extra cleaning to look nice on the screen.
         """
     )
