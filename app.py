@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 # SECTION 1: PAGE CONFIGURATION & SESSION STATE
 # ==============================================================================
 st.set_page_config(
-    page_title="Enterprise Risk Scanner",
+    page_title="News Headline Risk Scanner",
     page_icon="🏛️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -483,7 +483,7 @@ if st.sidebar.button("🔄 Refresh Data", help="Clear cache and re-fetch live he
 if st.session_state.page == "about":
     # -------------------- ABOUT PAGE --------------------
     st.title("ℹ️ About This Project")
-    st.markdown("**Project Outline: Interactive Enterprise Market Risk Scanner**")
+    st.markdown("**Project Outline: News Headline Risk Scanner**")
     st.divider()
 
     # Back button at the top for convenience
@@ -571,7 +571,7 @@ Investors can look at past 12-month threat charts to see how a company or sector
 
 else:
     # -------------------- MAIN RISK SCANNER PAGE --------------------
-    st.title("🏛️ Enterprise Market Risk Management Scanner")
+    st.title("🏛️ News Headline Risk Scanner")
     st.markdown("**Real-Time & 12-Month Longitudinal Media Threat Intelligence**")
 
     # About button immediately below the main heading
