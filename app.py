@@ -670,7 +670,13 @@ else:
         legend=dict(orientation="h", y=1.1, x=1, xanchor="right", yanchor="bottom"),
         font=dict(color="#f0f2f6" if dark_mode else "#1a1a1a"),
     )
-    st.plotly_chart(fig_bar, use_container_width=True, theme=None)
+
+    # Constrain width: place chart in left column, right column acts as padding
+    col_chart, col_blank = st.columns([1, 1])
+    with col_chart:
+        st.plotly_chart(fig_bar, use_container_width=True, theme=None)
+    with col_blank:
+        pass
 
     st.divider()
 
