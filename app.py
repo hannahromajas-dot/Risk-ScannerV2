@@ -537,11 +537,9 @@ Investors can look at recent risk trends to see how a company or sector's risk l
 
 * **It cleans the text** — News titles often arrive messy (with tags like “[Opinion]” or the publisher’s name stuck on the end). Simple text-cleaning rules remove the clutter so the computer can read them clearly.
 
-* **It turns words into numbers with TF-IDF** —  
-  The computer analyzes a training **corpus** (a collection of sample text documents) and scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
+* **It turns words into numbers with TF-IDF** — The computer analyzes a training corpus (a collection of sample text documents) and scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
 
-* **A Logistic Regression classifier sorts the risks** —  
-  The machine learning **classifier** was trained on example headlines from the corpus that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
+* **A classifier sorts the risks** — A machine learning classifier was trained on example headlines from the corpus that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
 
 * **It remembers the past** — New headlines are saved into a CSV file and combined with older records so the app can track trends over time.
 
@@ -707,11 +705,3 @@ else:
         st.caption(
             "No recent risk-classified headlines found for this scope over the last 7 days."
         )
-
-    # Footer note
-    st.divider()
-    st.caption(
-        "Classifier is a lightweight demo model (TF-IDF + Logistic Regression). "
-        "Expand the training corpus or replace with a stronger NLP model for production use. "
-        "Data is automatically persisted to historical_news.csv."
-    )
