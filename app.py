@@ -548,7 +548,7 @@ Investors can look at the past 12-month risk trends to see how a company or sect
 * **It turns words into numbers with TF-IDF** —  
   The computer analyzes a training **corpus** (a collection of sample text documents) and scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
 
-* **A Logistic Regression model sorts the risks** —  
+* **A Logistic Regression classifier sorts the risks** —  
   The machine learning **classifier** was trained on example headlines from the corpus that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
 
 * **It remembers the past** — New headlines are saved into a CSV file and combined with older records so the app can show trends for the last 12 months, not just today.
