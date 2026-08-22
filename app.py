@@ -806,4 +806,4 @@ else:
                 "No recent risk-classified headlines with usable links found for this scope. "
                 "Try refreshing data or selecting a different region/industry."
             )
-    )
+
