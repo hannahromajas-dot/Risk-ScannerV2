@@ -697,7 +697,6 @@ else:
             display_rows.append(
                 {
                     "Date": row["Date"].strftime("%Y-%m-%d"),
-                    "Keyword": row["Keyword"],
                     "Headline": headline_md,
                 }
             )
