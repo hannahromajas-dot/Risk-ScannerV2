@@ -614,8 +614,8 @@ else:
     # ==============================================================================
     # RECENT THREATS (LAST 7 DAYS BAR CHART & TOP HEADLINES)
     # ==============================================================================
-    st.subheader("⚠️ Daily Trend – Last 7 Days")
-    st.caption(f"Daily Risk Vector Volume for **{selected_industry}** in **{selected_region}**")
+    st.subheader("⚠️ Daily News Headlines - Potential Risks – Last 7 Day Trend")
+    st.caption(f"Daily Headline Potential Risk  Volume for **{selected_industry}** in **{selected_region}**")
 
     seven_days_ago = pd.Timestamp.now() - timedelta(days=6)
 
@@ -674,7 +674,7 @@ else:
 
     st.divider()
 
-    st.subheader("📋 Top Headlines – Last 7 Days")
+    st.subheader("📋 Top Potential Risk Headlines – Last 7 Days")
     has_any_threats = False
 
     for rv in RISK_VECTORS_ORDER:
