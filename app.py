@@ -259,8 +259,6 @@ HISTORICAL_CSV = Path("historical_news.csv")
 @st.cache_resource
 def train_erm_classifier():
     """Train a simple TF-IDF + Logistic Regression risk classifier.
-    Note: Training set is intentionally small for demo purposes.
-    For production, expand significantly or replace with a stronger model.
     """
     training_corpus = [
         # Financial
@@ -546,17 +544,15 @@ Investors can look at the past 12-month risk trends to see how a company or sect
 
 * **It cleans the text** — News titles often arrive messy (with tags like “[Opinion]” or the publisher’s name stuck on the end). Simple text-cleaning rules remove the clutter so the computer can read them clearly.
 
-* **It turns words into numbers with TF-IDF** —  
-  The computer scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
+* **It turns words into numbers with TF-IDF** — The computer scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
 
-* **A Logistic Regression model sorts the risks** —  
-  The model was trained on example headlines that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
+* **A Logistic Regression model sorts the risks** — The model was trained on example headlines that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
 
 * **It remembers the past** — New headlines are saved into a CSV file and combined with older records so the app can show trends for the last 12 months, not just today.
 
 * **It draws the charts** — Plotly creates the stacked bar chart (12-month trend) and the pie chart (last 14 days) so you can quickly see which types of risk are rising or falling.
 
-* **Streamlit makes it interactive** — Everything runs inside a web dashboard where you can change filters, switch dark mode, and explore the results without writing any code yourself.
+* **Streamlit makes it interactive** — Everything runs inside a web dashboard where you can change filters and explore the results.
         """
     )
 
@@ -778,7 +774,7 @@ else:
         st.plotly_chart(fig_pie, use_container_width=True, theme=None)
 
     with col_tables:
-        st.markdown("#### Top Headlines by Risk Vector")
+        st.markdown("#### Top Headlines by Risk Type")
 
         has_any_threats = False
 
@@ -797,7 +793,6 @@ else:
                 display_rows.append(
                     {
                         "Date": row["Date"].strftime("%Y-%m-%d"),
-                        "Keyword": row["Keyword"],
                         "Headline": headline_md,
                     }
                 )
@@ -811,11 +806,4 @@ else:
                 "No recent risk-classified headlines with usable links found for this scope. "
                 "Try refreshing data or selecting a different region/industry."
             )
-
-    # Footer note
-    st.divider()
-    st.caption(
-        "Classifier is a lightweight demo model (TF-IDF + Logistic Regression). "
-        "Expand the training corpus or replace with a stronger NLP model for production use. "
-        "Data is automatically persisted to historical_news.csv."
     )
