@@ -48,31 +48,40 @@ if dark_mode:
             background-color: #161b22 !important;
             color: #f0f2f6 !important;
         }
-        [data-testid="stSidebar"] * {
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] .stMarkdown,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3 {
             color: #f0f2f6 !important;
         }
 
-        /* ---------- Headings & body text ---------- */
+        /* ---------- Headings & body text (main area) ---------- */
         h1, h2, h3, h4, h5, h6,
         .stMarkdown, .stMarkdown p, .stMarkdown li, .stMarkdown span,
-        .stCaption, label, .stText, p, span, div {
+        .stCaption, label, .stText, p {
             color: #f0f2f6 !important;
         }
 
-        /* ---------- Buttons ---------- */
-        .stButton > button {
+        /* ---------- Buttons (dark mode – high contrast) ---------- */
+        .stButton > button,
+        div[data-testid="stSidebar"] .stButton > button {
             background-color: #21262d !important;
             color: #f0f2f6 !important;
             border: 1px solid #30363d !important;
             border-radius: 6px !important;
         }
-        .stButton > button:hover {
+        .stButton > button:hover,
+        div[data-testid="stSidebar"] .stButton > button:hover {
             background-color: #30363d !important;
             border-color: #8b949e !important;
             color: #ffffff !important;
         }
         .stButton > button[kind="primary"],
-        .stButton > button[data-testid="baseButton-primary"] {
+        .stButton > button[data-testid="baseButton-primary"],
+        div[data-testid="stSidebar"] .stButton > button[kind="primary"] {
             background-color: #238636 !important;
             border-color: #2ea043 !important;
             color: #ffffff !important;
@@ -81,19 +90,24 @@ if dark_mode:
             background-color: #2ea043 !important;
         }
 
-        /* ---------- Selectbox / Dropdown – keep light-mode appearance ---------- */
+        /* ---------- Selectbox / Dropdown – keep light appearance, force dark text ---------- */
         [data-testid="stSelectbox"] label {
-            color: #f0f2f6 !important;  /* label text still light for dark bg */
+            color: #f0f2f6 !important;
         }
         [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
             background-color: #ffffff !important;
             color: #1a1a1a !important;
             border-color: #d0d5dd !important;
         }
-        /* Dropdown menu popup stays light */
+        [data-testid="stSelectbox"] div[data-baseweb="select"] span,
+        [data-testid="stSelectbox"] div[data-baseweb="select"] div {
+            color: #1a1a1a !important;
+        }
+        /* Dropdown menu popup stays light with dark text */
         div[data-baseweb="popover"] div[data-baseweb="menu"],
         div[data-baseweb="popover"] ul,
-        div[data-baseweb="popover"] li {
+        div[data-baseweb="popover"] li,
+        div[data-baseweb="popover"] li span {
             background-color: #ffffff !important;
             color: #1a1a1a !important;
         }
@@ -241,6 +255,7 @@ VECTOR_COLORS = {
 
 HISTORICAL_CSV = Path("historical_news.csv")
 
+
 @st.cache_resource
 def train_erm_classifier():
     """Train a simple TF-IDF + Logistic Regression risk classifier.
@@ -303,6 +318,7 @@ def train_erm_classifier():
     model.fit(X_train, train_df["Label"])
     return vectorizer, model
 
+
 vectorizer, erm_model = train_erm_classifier()
 
 # ==============================================================================
@@ -321,6 +337,7 @@ def clean_headline(raw_title: str) -> str:
             if len(parts[0]) > 20:
                 cleaned = parts[0]
     return cleaned.strip()
+
 
 def generate_sample_historical() -> pd.DataFrame:
     """Create realistic sample historical data so the 12-month view works on first run."""
@@ -378,6 +395,7 @@ def generate_sample_historical() -> pd.DataFrame:
     df = pd.DataFrame(rows)
     df.to_csv(HISTORICAL_CSV, index=False)
     return df
+
 
 @st.cache_data(ttl=600, show_spinner="Fetching latest headlines…")
 def load_combined_dataset(selected_region: str, selected_industry: str) -> pd.DataFrame:
@@ -456,6 +474,7 @@ def load_combined_dataset(selected_region: str, selected_industry: str) -> pd.Da
     full_df = full_df.dropna(subset=["Date"])
     return full_df
 
+
 # ==============================================================================
 # SECTION 4: SIDEBAR – ALWAYS VISIBLE CONTROLS + ABOUT BUTTON
 # ==============================================================================
@@ -493,7 +512,7 @@ if st.session_state.page == "about":
 
     st.markdown("---")
 
-    # 1. What This Project Does
+    # 1. Business Purpose
     st.header("1. Business Purpose")
     st.markdown(
         """
@@ -517,8 +536,34 @@ Investors can look at the past 12-month risk trends to see how a company or sect
 
     st.markdown("---")
 
-    # 2. Tools Used
-    st.header("2. Tools Used")
+    # 2. How This Project Works
+    st.header("2. How This Project Works")
+    st.markdown(
+        """
+* **You choose a focus** — Pick an industry (like Technology or Manufacturing) and a region (like Europe or Asia). The app builds a smart search query from those choices.
+
+* **It pulls live news** — The app reaches out to Google News using RSS feeds and downloads the latest headlines that match your filters.
+
+* **It cleans the text** — News titles often arrive messy (with tags like “[Opinion]” or the publisher’s name stuck on the end). Simple text-cleaning rules remove the clutter so the computer can read them clearly.
+
+* **It turns words into numbers with TF-IDF** —  
+  The computer scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
+
+* **A Logistic Regression model sorts the risks** —  
+  The model was trained on example headlines that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
+
+* **It remembers the past** — New headlines are saved into a CSV file and combined with older records so the app can show trends for the last 12 months, not just today.
+
+* **It draws the charts** — Plotly creates the stacked bar chart (12-month trend) and the pie chart (last 14 days) so you can quickly see which types of risk are rising or falling.
+
+* **Streamlit makes it interactive** — Everything runs inside a web dashboard where you can change filters, switch dark mode, and explore the results without writing any code yourself.
+        """
+    )
+
+    st.markdown("---")
+
+    # 3. Tools Used
+    st.header("3. Tools Used")
     st.markdown(
         """
 * **Python & Scikit-Learn**: Uses machine learning (TF-IDF and Logistic Regression) to read incoming headlines and sort them into different risk categories.
@@ -529,11 +574,10 @@ Investors can look at the past 12-month risk trends to see how a company or sect
         """
     )
 
-
     st.markdown("---")
 
     # 4. Limitations
-    st.header("3. Limitations")
+    st.header("4. Limitations")
     st.markdown(
         """
 * **Smart Guessing (Model Limits)**: The AI was trained on a small starter list of examples, so if it reads brand-new or unusual phrasing (like a strange banking ad), it might occasionally mislabel it.
@@ -544,7 +588,7 @@ Investors can look at the past 12-month risk trends to see how a company or sect
     st.markdown("---")
 
     # 5. Future Ideas
-    st.header("4. Future Ideas")
+    st.header("5. Future Ideas")
     st.markdown(
         """
 * **Smarter AI Models**: Upgrading to advanced deep learning tools that understand business tone and context even better.
