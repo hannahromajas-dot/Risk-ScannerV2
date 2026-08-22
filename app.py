@@ -532,8 +532,8 @@ Investors can look at the past 12-month risk trends to see how a company or sect
 
     st.markdown("---")
 
-    # 3. Limitations
-    st.header("4. Limitations")
+    # 4. Limitations
+    st.header("3. Limitations")
     st.markdown(
         """
 * **Smart Guessing (Model Limits)**: The AI was trained on a small starter list of examples, so if it reads brand-new or unusual phrasing (like a strange banking ad), it might occasionally mislabel it.
@@ -543,8 +543,8 @@ Investors can look at the past 12-month risk trends to see how a company or sect
 
     st.markdown("---")
 
-    # 4. Future Ideas
-    st.header("5. Future Ideas")
+    # 5. Future Ideas
+    st.header("4. Future Ideas")
     st.markdown(
         """
 * **Smarter AI Models**: Upgrading to advanced deep learning tools that understand business tone and context even better.
