@@ -572,7 +572,7 @@ Investors can look at past 12-month threat charts to see how a company or sector
 else:
     # -------------------- MAIN RISK SCANNER PAGE --------------------
     st.title("🏛️ News Headline Risk Scanner")
-    st.markdown("**Real-Time & 12-Month Longitudinal Media Threat Intelligence**")
+    st.markdown("**Real-Time News Headline Risk Scanner**")
 
     # About button immediately below the main heading
     if st.button("ℹ️ About This Project"):
