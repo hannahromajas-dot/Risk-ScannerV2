@@ -259,6 +259,8 @@ HISTORICAL_CSV = Path("historical_news.csv")
 @st.cache_resource
 def train_erm_classifier():
     """Train a simple TF-IDF + Logistic Regression risk classifier.
+    Note: Training set is intentionally small for demo purposes.
+    For production, expand significantly or replace with a stronger model.
     """
     training_corpus = [
         # Financial
@@ -544,15 +546,17 @@ Investors can look at the past 12-month risk trends to see how a company or sect
 
 * **It cleans the text** — News titles often arrive messy (with tags like “[Opinion]” or the publisher’s name stuck on the end). Simple text-cleaning rules remove the clutter so the computer can read them clearly.
 
-* **It turns words into numbers with TF-IDF** — The computer scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
+* **It turns words into numbers with TF-IDF** —  
+  The computer scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
 
-* **A Logistic Regression model sorts the risks** — The model was trained on example headlines that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
+* **A Logistic Regression model sorts the risks** —  
+  The model was trained on example headlines that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
 
 * **It remembers the past** — New headlines are saved into a CSV file and combined with older records so the app can show trends for the last 12 months, not just today.
 
 * **It draws the charts** — Plotly creates the stacked bar chart (12-month trend) and the pie chart (last 14 days) so you can quickly see which types of risk are rising or falling.
 
-* **Streamlit makes it interactive** — Everything runs inside a web dashboard where you can change filters and explore the results.
+* **Streamlit makes it interactive** — Everything runs inside a web dashboard where you can change filters, switch dark mode, and explore the results without writing any code yourself.
         """
     )
 
@@ -635,37 +639,48 @@ else:
     if sector_df.empty:
         st.info("No historical data available for this combination yet. Try another region/industry or wait for live data.")
     else:
-        # Restrict to last 12 months and force complete month index
+        # Restrict to last 12 months
         cutoff = pd.Timestamp.now() - pd.DateOffset(months=12)
         sector_df = sector_df[sector_df["Date"] >= cutoff].copy()
 
+        # Normalize to month-start timestamps for consistent alignment
         sector_df["YearMonth"] = sector_df["Date"].dt.to_period("M").dt.to_timestamp()
 
         risk_only_df = sector_df[sector_df["Risk_Vector"] != "General (Neutral / Positive)"]
 
+        # Build a complete 12-month calendar (always show every month)
         end_month = pd.Timestamp.now().to_period("M").to_timestamp()
-        start_month = end_month - pd.DateOffset(months=11)
-        full_months = pd.date_range(start_month, end_month, freq="MS")
+        start_month = (pd.Timestamp.now() - pd.DateOffset(months=11)).to_period("M").to_timestamp()
+        full_months = pd.date_range(start=start_month, end=end_month, freq="MS")
 
-        monthly_counts = (
-            risk_only_df.groupby(["YearMonth", "Risk_Vector"])
-            .size()
-            .unstack(fill_value=0)
-            .reindex(full_months, fill_value=0)
-        )
+        # Count headlines per month × risk vector
+        if risk_only_df.empty:
+            monthly_counts = pd.DataFrame(0, index=full_months, columns=RISK_VECTORS_ORDER)
+        else:
+            monthly_counts = (
+                risk_only_df.groupby(["YearMonth", "Risk_Vector"])
+                .size()
+                .unstack(fill_value=0)
+            )
+            # Force every calendar month onto the index (fill missing with 0)
+            monthly_counts = monthly_counts.reindex(full_months, fill_value=0)
 
+        # Ensure all four risk columns exist and are in a fixed order
         for rv in RISK_VECTORS_ORDER:
             if rv not in monthly_counts.columns:
                 monthly_counts[rv] = 0
-        monthly_counts = monthly_counts[RISK_VECTORS_ORDER]
+        monthly_counts = monthly_counts[RISK_VECTORS_ORDER].astype(int)
+
+        # Convert to fixed string labels so Plotly treats every month as a category
+        x_labels = [d.strftime("%b %Y") for d in monthly_counts.index]
 
         with col_graph:
             fig = go.Figure()
             for rv in RISK_VECTORS_ORDER:
                 fig.add_trace(
                     go.Bar(
-                        x=monthly_counts.index,
-                        y=monthly_counts[rv],
+                        x=x_labels,
+                        y=monthly_counts[rv].tolist(),
                         name=rv,
                         marker_color=VECTOR_COLORS[rv],
                     )
@@ -674,7 +689,15 @@ else:
                 barmode="stack",
                 height=400,
                 margin=dict(l=10, r=10, t=30, b=10),
-                xaxis=dict(title="Last 12 Months", tickformat="%b %Y"),
+                xaxis=dict(
+                    title="Last 12 Months",
+                    categoryorder="array",
+                    categoryarray=x_labels,
+                    tickmode="array",
+                    tickvals=x_labels,
+                    ticktext=x_labels,
+                    tickangle=-45,
+                ),
                 yaxis=dict(title="Headline Count"),
                 legend=dict(
                     orientation="h",
@@ -739,7 +762,7 @@ else:
     col_pie, col_tables = st.columns([1, 1.6])
 
     with col_pie:
-        st.markdown("#### Risk Type Distribution")
+        st.markdown("#### Threat Distribution by Vector")
 
         if not recent_df.empty:
             pie_counts = recent_df["Risk_Vector"].value_counts()
@@ -774,7 +797,7 @@ else:
         st.plotly_chart(fig_pie, use_container_width=True, theme=None)
 
     with col_tables:
-        st.markdown("#### Top Headlines by Risk Type")
+        st.markdown("#### Top Headlines by Risk Vector")
 
         has_any_threats = False
 
@@ -793,6 +816,7 @@ else:
                 display_rows.append(
                     {
                         "Date": row["Date"].strftime("%Y-%m-%d"),
+                        "Keyword": row["Keyword"],
                         "Headline": headline_md,
                     }
                 )
@@ -807,3 +831,10 @@ else:
                 "Try refreshing data or selecting a different region/industry."
             )
 
+    # Footer note
+    st.divider()
+    st.caption(
+        "Classifier is a lightweight demo model (TF-IDF + Logistic Regression). "
+        "Expand the training corpus or replace with a stronger NLP model for production use. "
+        "Data is automatically persisted to historical_news.csv."
+    )
