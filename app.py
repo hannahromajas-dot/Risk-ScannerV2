@@ -103,7 +103,6 @@ if dark_mode:
         [data-testid="stSelectbox"] div[data-baseweb="select"] div {
             color: #1a1a1a !important;
         }
-        /* Dropdown menu popup stays light with dark text */
         div[data-baseweb="popover"] div[data-baseweb="menu"],
         div[data-baseweb="popover"] ul,
         div[data-baseweb="popover"] li,
@@ -547,14 +546,14 @@ Investors can look at the past 12-month risk trends to see how a company or sect
 * **It cleans the text** — News titles often arrive messy (with tags like “[Opinion]” or the publisher’s name stuck on the end). Simple text-cleaning rules remove the clutter so the computer can read them clearly.
 
 * **It turns words into numbers with TF-IDF** —  
-  The computer scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
+  The computer analyzes a training **corpus** (a collection of sample text documents) and scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
 
-* **A Logistic Regression model sorts the risks** —  
-  The model was trained on example headlines that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
+* **A Logistic Regression classifier sorts the risks** —  
+  The machine learning **classifier** was trained on example headlines from the corpus that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
 
 * **It remembers the past** — New headlines are saved into a CSV file and combined with older records so the app can show trends for the last 12 months, not just today.
 
-* **It draws the charts** — Plotly creates the stacked bar chart (12-month trend) and the pie chart (last 14 days) so you can quickly see which types of risk are rising or falling.
+* **It draws the charts** — Plotly creates the stacked bar chart (12-month trend) and the donut chart / daily trend charts so you can quickly see which types of risk are rising or falling.
 
 * **Streamlit makes it interactive** — Everything runs inside a web dashboard where you can change filters, switch dark mode, and explore the results without writing any code yourself.
         """
@@ -746,63 +745,114 @@ else:
     st.divider()
 
     # ==============================================================================
-    # RECENT THREATS (LAST 14 DAYS) – PIE CHART
+    # RECENT THREATS (TODAY'S DONUT & LAST 7 DAYS BAR CHART)
     # ==============================================================================
-    st.subheader("⚠️ Recent Threats – Last 14 Days")
+    st.subheader("⚠️ Recent Threats – Today & Last 7 Days")
 
-    fourteen_days_ago = pd.Timestamp.now() - timedelta(days=14)
+    today_date = pd.Timestamp.now().normalize()
+    seven_days_ago = pd.Timestamp.now() - timedelta(days=6)
 
-    recent_df = sector_df[
-        (sector_df["Date"] >= fourteen_days_ago)
+    today_df = sector_df[
+        (sector_df["Date"] >= today_date)
         & (sector_df["Risk_Vector"] != "General (Neutral / Positive)")
     ].copy()
 
-    recent_df = recent_df.sort_values(by="Date", ascending=False)
+    seven_days_df = sector_df[
+        (sector_df["Date"] >= seven_days_ago)
+        & (sector_df["Risk_Vector"] != "General (Neutral / Positive)")
+    ].copy()
+    seven_days_df = seven_days_df.sort_values(by="Date", ascending=False)
 
-    col_pie, col_tables = st.columns([1, 1.6])
+    col_donut, col_bar, col_tables = st.columns([1, 1.2, 1.5])
 
-    with col_pie:
-        st.markdown("#### Threat Distribution by Vector")
-
-        if not recent_df.empty:
-            pie_counts = recent_df["Risk_Vector"].value_counts()
+    with col_donut:
+        st.markdown("#### Today's Threats")
+        if not today_df.empty:
+            donut_counts = today_df["Risk_Vector"].value_counts()
         else:
-            pie_counts = pd.Series(0, index=RISK_VECTORS_ORDER)
+            donut_counts = pd.Series(0, index=RISK_VECTORS_ORDER)
 
-        pie_counts = pie_counts.reindex(RISK_VECTORS_ORDER, fill_value=0)
-        pie_colors = [VECTOR_COLORS[rv] for rv in pie_counts.index]
+        donut_counts = donut_counts.reindex(RISK_VECTORS_ORDER, fill_value=0)
+        donut_colors = [VECTOR_COLORS[rv] for rv in donut_counts.index]
 
-        fig_pie = go.Figure(
+        fig_donut = go.Figure(
             data=[
                 go.Pie(
-                    labels=pie_counts.index,
-                    values=pie_counts.values,
-                    marker=dict(colors=pie_colors),
+                    labels=donut_counts.index,
+                    values=donut_counts.values,
+                    marker=dict(colors=donut_colors),
                     textinfo="label+percent+value",
-                    hole=0.35,
+                    hole=0.4,
                     sort=False,
                 )
             ]
         )
-        fig_pie.update_layout(
+        fig_donut.update_layout(
             height=360,
             margin=dict(l=10, r=10, t=30, b=10),
             template=plotly_template,
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
-            showlegend=True,
-            legend=dict(orientation="h", y=-0.1),
+            showlegend=False,
             font=dict(color="#f0f2f6" if dark_mode else "#1a1a1a"),
         )
-        st.plotly_chart(fig_pie, use_container_width=True, theme=None)
+        st.plotly_chart(fig_donut, use_container_width=True, theme=None)
+
+    with col_bar:
+        st.markdown("#### Daily Trend – Last 7 Days")
+        
+        end_day = pd.Timestamp.now().normalize()
+        start_day = end_day - timedelta(days=6)
+        full_days = pd.date_range(start=start_day, end=end_day, freq="D")
+        
+        if seven_days_df.empty:
+            daily_counts = pd.DataFrame(0, index=full_days, columns=RISK_VECTORS_ORDER)
+        else:
+            seven_days_df["DayOnly"] = seven_days_df["Date"].dt.normalize()
+            daily_counts = (
+                seven_days_df.groupby(["DayOnly", "Risk_Vector"])
+                .size()
+                .unstack(fill_value=0)
+            )
+            daily_counts = daily_counts.reindex(full_days, fill_value=0)
+        
+        for rv in RISK_VECTORS_ORDER:
+            if rv not in daily_counts.columns:
+                daily_counts[rv] = 0
+        daily_counts = daily_counts[RISK_VECTORS_ORDER].astype(int)
+        
+        x_day_labels = [d.strftime("%b %d") for d in daily_counts.index]
+
+        fig_bar = go.Figure()
+        for rv in RISK_VECTORS_ORDER:
+            fig_bar.add_trace(
+                go.Bar(
+                    x=x_day_labels,
+                    y=daily_counts[rv].tolist(),
+                    name=rv,
+                    marker_color=VECTOR_COLORS[rv],
+                )
+            )
+        fig_bar.update_layout(
+            barmode="stack",
+            height=360,
+            margin=dict(l=10, r=10, t=30, b=10),
+            xaxis=dict(title="Last 7 Days", tickangle=-30),
+            yaxis=dict(title="Headline Count"),
+            template=plotly_template,
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            showlegend=False,
+            font=dict(color="#f0f2f6" if dark_mode else "#1a1a1a"),
+        )
+        st.plotly_chart(fig_bar, use_container_width=True, theme=None)
 
     with col_tables:
-        st.markdown("#### Top Headlines by Risk Vector")
-
+        st.markdown("#### Top Headlines (Last 7 Days)")
         has_any_threats = False
 
         for rv in RISK_VECTORS_ORDER:
-            sub_rv = recent_df[recent_df["Risk_Vector"] == rv].head(4)
+            sub_rv = seven_days_df[seven_days_df["Risk_Vector"] == rv].head(3)
             if sub_rv.empty:
                 continue
 
@@ -827,8 +877,7 @@ else:
 
         if not has_any_threats:
             st.caption(
-                "No recent risk-classified headlines with usable links found for this scope. "
-                "Try refreshing data or selecting a different region/industry."
+                "No recent risk-classified headlines found for this scope over the last 7 days."
             )
 
     # Footer note
