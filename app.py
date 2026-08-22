@@ -533,15 +533,15 @@ Investors can look at recent risk trends to see how a company or sector's risk l
         """
 * **You choose a focus** — Pick an industry (like Technology or Manufacturing) and a region (like Europe or Asia). The app builds a smart search query from those choices.
 
-* **It pulls live news** — The app reaches out to Google News using RSS feeds and downloads the latest headlines that match your filters.
+* **It pulls live news** — The app reaches out to Google News using real-time RSS feeds and downloads the latest headlines that match your filters.
 
-* **It cleans the text** — News titles often arrive messy (with tags like “[Opinion]” or the publisher’s name stuck on the end). Simple text-cleaning rules remove the clutter so the computer can read them clearly.
+* **It cleans the text** — News titles often arrive messy (with tags like “[Opinion]” or the publisher’s name stuck on the end). Simple text-cleaning rules attempt to remove the clutter so the server can read them clearly.
 
-* **It turns words into numbers with TF-IDF** — The computer analyzes a training corpus (a collection of sample text documents) and scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
+* **It turns words into numbers with TF-IDF** — Using the TF-IDF methodology in Scikit_learn, the server analyzes a training corpus (a collection of sample text documents) and scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
 
 * **A classifier sorts the risks** — A machine learning classifier was trained on example headlines from the corpus that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
 
-* **It remembers the past** — New headlines are saved into a CSV file and combined with older records so the app can track trends over time.
+* **It remembers the past** — New headlines are saved into a CSV file and combined with older records so the app can track trends over the past 7 days.
 
 * **It draws the charts** — Plotly creates the daily trend bar chart so you can quickly see which types of risk are rising or falling.
 
@@ -551,11 +551,10 @@ Investors can look at recent risk trends to see how a company or sector's risk l
 
     st.markdown("---")
 
-    st.header("3. Tools Used")
+    st.header("3. Key Tools Used")
     st.markdown(
         """
 * **Python & Scikit-Learn**: Uses machine learning (TF-IDF and Logistic Regression) to read incoming headlines and sort them into different risk categories.
-* **Kaggle / CSV Data**: Stores the historical news records so the app can maintain past trends.
 * **Google RSS**: Pulls live, real-time news headlines based on the industry and region you select.
 * **Streamlit**: Powers the interactive web dashboard where users can click dropdown menus, toggle dark mode, and view live charts.
 * **GitHub**: Stores all the project code files and uses automated workflows to run background updates every single night.
@@ -567,7 +566,7 @@ Investors can look at recent risk trends to see how a company or sector's risk l
     st.header("4. Limitations")
     st.markdown(
         """
-* **Smart Guessing (Model Limits)**: The AI was trained on a small starter list of examples, so if it reads brand-new or unusual phrasing (like a strange banking ad), it might occasionally mislabel it.
+* **Smart Guessing (Model Limits)**: The AI was trained on a small starter list of examples, so if it reads brand-new or unusual phrasing (like a strange banking ad), it might occasionally mislabel it or exclude the headline entirely.
 * **Messy Headlines**: Raw news titles often come with weird tags (like [Opinion]) or publisher names that require extra cleaning to look nice on the screen.
         """
     )
@@ -577,9 +576,9 @@ Investors can look at recent risk trends to see how a company or sector's risk l
     st.header("5. Future Ideas")
     st.markdown(
         """
-* **Smarter AI Models**: Upgrading to advanced deep learning tools that understand business tone and context even better.
+* **Smarter AI Models**: Upgrading to advanced deep learning tools that better understand business tone and context even better.
 * **Automatic Alerts**: Setting up text or email alerts to notify managers immediately if a certain type of risk suddenly spikes.
-* **Multi-Language News**: Expanding the app to scan business news written in other languages, like German financial reports.
+* **Multi-Language News**: Expanding the app to scan business news written in other languages, for example - German financial reports.
         """
     )
 
