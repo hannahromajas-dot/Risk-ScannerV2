@@ -532,7 +532,7 @@ Investors can look at the past 12-month risk trends to see how a company or sect
 
     st.markdown("---")
 
-    # 4. Limitations
+    # 3. Limitations
     st.header("4. Limitations")
     st.markdown(
         """
@@ -543,7 +543,7 @@ Investors can look at the past 12-month risk trends to see how a company or sect
 
     st.markdown("---")
 
-    # 5. Future Ideas
+    # 4. Future Ideas
     st.header("5. Future Ideas")
     st.markdown(
         """
