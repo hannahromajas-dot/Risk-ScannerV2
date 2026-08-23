@@ -537,9 +537,9 @@ Investors can look at recent risk trends to see how a company or sector's risk l
 
 * **It cleans the text** — News titles often arrive messy (with tags like “[Opinion]” or the publisher’s name stuck on the end). Simple text-cleaning rules attempt to remove the clutter so the server can read them clearly.
 
-* **It turns words into numbers with TF-IDF** — Using the TF-IDF methodology in Scikit_learn, the server analyzes a training corpus (a collection of sample text documents) and scores each word based on how often it appears in a headline and how rare it is overall. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
+* **It turns words into numbers with TF-IDF** — Using the TF-IDF method in Scikit-Learn, the server analyzes a training **corpus** (a collection of sample headlines). It scores each word based on how often it appears in a headline and how rare it is across the whole corpus. Unusual, important words (like “ransomware” or “lawsuit”) get high scores. Common words (like “the” or “company”) get low scores. This turns every headline into a list of numbers the computer can understand.
 
-* **A classifier sorts the risks** — A machine learning classifier was trained on example headlines from the corpus that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, it looks at the word scores and picks the most likely risk category.
+* **A classifier sorts the risks** — A machine-learning **classifier** (Logistic Regression) was trained on example headlines from the corpus that were already labeled by risk type. It learned which word patterns usually mean Regulatory, Strategic, Operational, or Financial risk. When a new headline arrives, the classifier looks at the word scores and picks the most likely risk category.
 
 * **It remembers the past** — New headlines are saved into a CSV file and combined with older records so the app can track trends over the past 7 days.
 
