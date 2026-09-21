@@ -10,8 +10,22 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from pathlib import Path
 import warnings
+import streamlit.components.v1 as components
 
 warnings.filterwarnings("ignore")
+
+ga_code = """
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>
+"""
+components.html(ga_code, height=0, width=0)
+
 
 # ==============================================================================
 # SECTION 1: PAGE CONFIGURATION & SESSION STATE
