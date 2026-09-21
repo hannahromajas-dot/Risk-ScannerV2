@@ -631,7 +631,7 @@ else:
     st.subheader("⚠️ Daily News Headlines - Potential Risks – Last 7 Day Trend")
     st.caption(f"Daily Headline Potential Risk  Volume for **{selected_industry}** in **{selected_region}**")
 
-    seven_days_ago = pd.Timestamp.now() - timedelta(days=6)
+    seven_days_ago = pd.Timestamp.now().normalize() - timedelta(days=6)
 
     seven_days_df = sector_df[
         (sector_df["Date"] >= seven_days_ago)
