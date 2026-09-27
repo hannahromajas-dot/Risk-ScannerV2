@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News Headline Risk Scanner</title>
+
+  <!-- Google tag (gtag.js) - Real <head> placement -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VKGXFJPWHS"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-VKGXFJPWHS');
+  </script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0e1117;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Embeds Hannah's live Streamlit app without the default top chrome -->
+  <iframe
+    src="https://risk-scanner.streamlit.app/"
+    allow="clipboard-read; clipboard-write">
+  </iframe>
+</body>
+</html>
