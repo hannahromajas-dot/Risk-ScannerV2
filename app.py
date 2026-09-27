@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_gtag import st_gtag
 import pandas as pd
 import numpy as np
 import feedparser
@@ -24,13 +23,6 @@ st.set_page_config(
     page_icon="🏛️",
     layout="wide",
     initial_sidebar_state="expanded",
-)
-
-st_gtag(id="G-VKGXFJPWHS")
-
-st_gtag(
-    gtag_id="G-VKGXFJPWHS",
-    config={"send_page_view": True}
 )
 
 # Page navigation via session state
