@@ -22,10 +22,10 @@ ga_code = """
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  // Point GA to the parent Streamlit window rather than the iframe sandbox
+  // Use document.referrer to safely grab the parent Streamlit URL without cross-origin blocks
   gtag('config', 'G-VKGXFJPWHS', {
-      'page_location': window.parent.location.href,
-      'page_title': window.parent.document.title
+      'page_location': (document.referrer ? document.referrer : window.location.href),
+      'page_title': 'News Headline Risk Scanner'
   });
 </script>
 """
