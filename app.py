@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_gtag import st_gtag
 import pandas as pd
 import numpy as np
 import feedparser
@@ -25,22 +26,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-import streamlit.components.v1 as components
-
-GA_ID = "G-VKGXFJPWHS"  # your measurement ID
-
-components.html(
-    f"""
-    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){{dataLayer.push(arguments);}}
-      gtag('js', new Date());
-      gtag('config', '{GA_ID}');
-    </script>
-    """,
-    height=0,
-    width=0,
+st_gtag(
+    gtag_id="G-VKGXFJPWHS",
+    config={"send_page_view": True}
 )
 
 # Page navigation via session state
