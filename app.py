@@ -14,23 +14,6 @@ import streamlit.components.v1 as components
 
 warnings.filterwarnings("ignore")
 
-ga_code = """
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VKGXFJPWHS"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  // Use document.referrer to safely grab the parent Streamlit URL without cross-origin blocks
-  gtag('config', 'G-VKGXFJPWHS', {
-      'page_location': (document.referrer ? document.referrer : window.location.href),
-      'page_title': 'News Headline Risk Scanner'
-  });
-</script>
-"""
-components.html(ga_code, height=0, width=0)
-
 
 # ==============================================================================
 # SECTION 1: PAGE CONFIGURATION & SESSION STATE
@@ -41,6 +24,23 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+ga_tag = """
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VKGXFJPWHS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  // Direct configuration targeting the top window
+  gtag('config', 'G-VKGXFJPWHS', {
+      'page_location': window.top.location.href,
+      'page_title': 'News Headline Risk Scanner'
+  });
+</script>
+"""
+st.markdown(ga_tag, unsafe_allow_html=True)
+
 
 # Page navigation via session state
 if "page" not in st.session_state:
