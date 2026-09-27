@@ -25,19 +25,23 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# 2. Inject Google Tag script via Streamlit components iframe
-ga_code = """
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VKGXFJPWHS"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+import streamlit.components.v1 as components
 
-  gtag('config', 'G-VKGXFJPWHS');
-</script>
-"""
-components.html(ga_code, height=0, width=0)
+GA_ID = "G-VKGXFJPWHS"  # your measurement ID
+
+components.html(
+    f"""
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){{dataLayer.push(arguments);}}
+      gtag('js', new Date());
+      gtag('config', '{GA_ID}');
+    </script>
+    """,
+    height=0,
+    width=0,
+)
 
 # Page navigation via session state
 if "page" not in st.session_state:
