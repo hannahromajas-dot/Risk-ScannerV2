@@ -5,4 +5,3 @@ scikit-learn
 feedparser
 plotly
 tabulate
-streamlit-google-analytics-tag
