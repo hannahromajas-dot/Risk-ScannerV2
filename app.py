@@ -10,6 +10,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from pathlib import Path
 import warnings
+import streamlit.components.v1 as components
 
 warnings.filterwarnings("ignore")
 
@@ -24,8 +25,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# 2. Inject Google Analytics directly into HTML context after page configuration
+# 2. Inject Google Tag script via Streamlit components iframe
 ga_code = """
+<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-VKGXFJPWHS"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -33,12 +35,12 @@ ga_code = """
   gtag('js', new Date());
 
   gtag('config', 'G-VKGXFJPWHS', {
-      'page_location': window.top.location.href,
+      'page_location': (window.top !== window.self ? document.referrer : window.location.href),
       'page_title': 'News Headline Risk Scanner'
   });
 </script>
 """
-st.markdown(ga_code, unsafe_allow_html=True)
+components.html(ga_code, height=0, width=0)
 
 # Page navigation via session state
 if "page" not in st.session_state:
