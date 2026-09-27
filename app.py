@@ -21,7 +21,7 @@ ga_code = """
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXXXX');
+  gtag('config', 'G-VKGXFJPWHS');
 </script>
 """
 components.html(ga_code, height=0, width=0)
