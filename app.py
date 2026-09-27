@@ -10,14 +10,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from pathlib import Path
 import warnings
-import streamlit.components.v1 as components
 
 warnings.filterwarnings("ignore")
-
 
 # ==============================================================================
 # SECTION 1: PAGE CONFIGURATION & SESSION STATE
 # ==============================================================================
+# 1. st.set_page_config MUST be the absolute first Streamlit command executed
 st.set_page_config(
     page_title="News Headline Risk Scanner",
     page_icon="🏛️",
@@ -25,22 +24,21 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-ga_tag = """
+# 2. Inject Google Analytics directly into HTML context after page configuration
+ga_code = """
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-VKGXFJPWHS"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  // Direct configuration targeting the top window
   gtag('config', 'G-VKGXFJPWHS', {
       'page_location': window.top.location.href,
       'page_title': 'News Headline Risk Scanner'
   });
 </script>
 """
-st.markdown(ga_tag, unsafe_allow_html=True)
-
+st.markdown(ga_code, unsafe_allow_html=True)
 
 # Page navigation via session state
 if "page" not in st.session_state:
@@ -276,10 +274,7 @@ HISTORICAL_CSV = Path("historical_news.csv")
 
 @st.cache_resource
 def train_erm_classifier():
-    """Train a simple TF-IDF + Logistic Regression risk classifier.
-    Note: Training set is intentionally small for demo purposes.
-    For production, expand significantly or replace with a stronger model.
-    """
+    """Train a simple TF-IDF + Logistic Regression risk classifier."""
     training_corpus = [
         # Financial
         ("Quarterly profit loss recorded due to debt liquidity crunch", "Financial"),
@@ -634,7 +629,7 @@ else:
     # RECENT THREATS (LAST 7 DAYS BAR CHART & TOP HEADLINES)
     # ==============================================================================
     st.subheader("⚠️ Daily News Headlines - Potential Risks – Last 7 Day Trend")
-    st.caption(f"Daily Headline Potential Risk  Volume for **{selected_industry}** in **{selected_region}**")
+    st.caption(f"Daily Headline Potential Risk Volume for **{selected_industry}** in **{selected_region}**")
 
     seven_days_ago = pd.Timestamp.now().normalize() - timedelta(days=6)
 
