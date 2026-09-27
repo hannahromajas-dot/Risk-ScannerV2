@@ -22,7 +22,11 @@ ga_code = """
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  gtag('config', 'G-VKGXFJPWHS');
+  // Point GA to the parent Streamlit window rather than the iframe sandbox
+  gtag('config', 'G-VKGXFJPWHS', {
+      'page_location': window.parent.location.href,
+      'page_title': window.parent.document.title
+  });
 </script>
 """
 components.html(ga_code, height=0, width=0)
