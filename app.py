@@ -26,6 +26,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+st_gtag(id="G-VKGXFJPWHS")
+
 st_gtag(
     gtag_id="G-VKGXFJPWHS",
     config={"send_page_view": True}
