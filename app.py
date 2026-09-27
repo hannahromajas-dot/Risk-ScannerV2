@@ -34,10 +34,7 @@ ga_code = """
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  gtag('config', 'G-VKGXFJPWHS', {
-      'page_location': (window.top !== window.self ? document.referrer : window.location.href),
-      'page_title': 'News Headline Risk Scanner'
-  });
+  gtag('config', 'G-VKGXFJPWHS');
 </script>
 """
 components.html(ga_code, height=0, width=0)
